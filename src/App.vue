@@ -51,15 +51,15 @@
               v-if="ticker.length > 0"
             >
               <span
-                v-for="hint in getHints()"
+                v-for="hint in hints"
                 :key="hint"
                 class="inline-flex items-center px-2 m-1 rounded-md text-xs font-medium bg-gray-300 text-gray-800 cursor-pointer"
-                @click="add(hint)"
+                @click="hintClick(hint)"
               >
                 {{ hint }}
               </span>
             </div>
-            <div v-if="tickerExists()" class="text-sm text-red-600">
+            <div v-if="tickerExists" class="text-sm text-red-600">
               Такой тикер уже добавлен
             </div>
           </div>
@@ -94,7 +94,7 @@
             :key="t.name"
             @click="select(t)"
             :class="{
-              'border-4': sel === t
+              'border-4': selectedTicker === t
             }"
             class="bg-white overflow-hidden shadow rounded-lg border-purple-800 border-solid cursor-pointer"
           >
@@ -129,20 +129,20 @@
         </dl>
         <hr class="w-full border-t border-gray-600 my-4" />
       </template>
-      <section v-if="sel" class="relative">
+      <section v-if="selectedTicker" class="relative">
         <h3 class="text-lg leading-6 font-medium text-gray-900 my-8">
-          {{ sel.name }} - USD
+          {{ selectedTicker.name }} - USD
         </h3>
         <div class="flex items-end border-gray-600 border-b border-l h-64">
           <div
-            v-for="(bar, idx) in normalizeGraph()"
+            v-for="(bar, idx) in normalizedGraph"
             :key="idx"
             :style="{ height: `${bar}%` }"
             class="bg-purple-800 border w-10"
           ></div>
         </div>
         <button
-          @click="sel = null"
+          @click="selectedTicker = null"
           type="button"
           class="absolute top-0 right-0"
         >
@@ -177,59 +177,77 @@
 export default {
   name: "App",
 
-  created: async function() {
+  async created() {
     let response = await fetch(
       "https://min-api.cryptocompare.com/data/all/coinlist?summary=true"
     );
     let { Data } = await response.json();
     this.autocomplete = Data;
-    this.ready = true;
   },
 
   data() {
     return {
       ticker: "",
       tickers: [],
-      sel: null,
+      selectedTicker: null,
       graph: [],
-      ready: false,
       autocomplete: {}
     };
   },
 
-  methods: {
-    getHints(input = this.ticker) {
-      if (input.length === 0) return [];
-      input = input.toUpperCase();
+  computed: {
+    ready() {
+      return Object.keys(this.autocomplete).length > 0;
+    },
+
+    hints() {
+      if (this.ticker.length === 0) return [];
+
       return Object.keys(this.autocomplete)
         .filter(
           coin =>
-            coin.includes(input) ||
-            this.autocomplete[coin].FullName.toUpperCase().includes(input)
+            coin.includes(this.ticker.toUpperCase()) ||
+            this.autocomplete[coin].FullName.toUpperCase().includes(
+              this.ticker.toUpperCase()
+            )
         )
         .slice(0, 4);
     },
 
-    tickerExists(name = this.ticker) {
-      if (name.length === 0) return false;
-      return !!this.tickers.find(t => t.name === name.toUpperCase());
+    tickerExists() {
+      return !!this.tickers.find(t => t.name === this.ticker.toUpperCase());
     },
 
-    add(name = this.ticker) {
-      name = name.toUpperCase();
-      if (name.length === 0 || this.tickerExists(name)) {
+    normalizedGraph() {
+      const maxValue = Math.max(...this.graph);
+      const minValue = Math.min(...this.graph);
+      if (minValue === maxValue) return new Array(this.graph.length).fill(50);
+      return this.graph.map(
+        price => 5 + ((price - minValue) * 95) / (maxValue - minValue)
+      );
+    }
+  },
+
+  methods: {
+    hintClick(hint) {
+      this.ticker = hint;
+      this.add();
+    },
+    add() {
+      if (this.tickerExists) {
         return;
       }
 
       const currentTicker = {
-        name,
+        name: this.ticker.toUpperCase(),
         price: "-"
       };
 
       this.tickers.push(currentTicker);
+
       setInterval(async () => {
         const f = await fetch(
-          `https://min-api.cryptocompare.com/data/price?fsym=${currentTicker.name}&tsyms=USD&api_key=ce3fd966e7a1d10d65f907b20bf000552158fd3ed1bd614110baa0ac6cb57a7e`
+          `https://min-api.cryptocompare.com/data/price?fsym=${currentTicker.name}&tsyms=USD&api_key=95bdf7e8c4ef1827e5f4b13d319b2ac9b409aa62feedc30f0f6553924d6ab246`
         );
         const data = await f.json();
 
@@ -237,7 +255,7 @@ export default {
         this.tickers.find(t => t.name === currentTicker.name).price =
           data.USD > 1 ? data.USD.toFixed(2) : data.USD.toPrecision(2);
 
-        if (this.sel?.name === currentTicker.name) {
+        if (this.selectedTicker?.name === currentTicker.name) {
           this.graph.push(data.USD);
         }
       }, 5000);
@@ -245,20 +263,12 @@ export default {
     },
 
     select(ticker) {
-      this.sel = ticker;
+      this.selectedTicker = ticker;
       this.graph = [];
     },
 
     handleDelete(tickerToRemove) {
       this.tickers = this.tickers.filter(t => t !== tickerToRemove);
-    },
-
-    normalizeGraph() {
-      const maxValue = Math.max(...this.graph);
-      const minValue = Math.min(...this.graph);
-      return this.graph.map(
-        price => 5 + ((price - minValue) * 95) / (maxValue - minValue)
-      );
     }
   }
 };
