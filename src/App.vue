@@ -206,16 +206,14 @@ export default {
       return Object.keys(this.autocomplete)
         .filter(
           coin =>
-            coin.includes(this.ticker.toUpperCase()) ||
-            this.autocomplete[coin].FullName.toUpperCase().includes(
-              this.ticker.toUpperCase()
-            )
+            coin.includes(this.ticker) ||
+            this.autocomplete[coin].FullName.toUpperCase().includes(this.ticker)
         )
         .slice(0, 4);
     },
 
     tickerExists() {
-      return !!this.tickers.find(t => t.name === this.ticker.toUpperCase());
+      return !!this.tickers.find(t => t.name === this.ticker);
     },
 
     normalizedGraph() {
@@ -228,47 +226,62 @@ export default {
     }
   },
 
+  watch: {
+    selectedTicker() {
+      this.graph = [];
+    },
+
+    tickers() {
+      this.addInterval(this.ticker);
+      this.ticker = "";
+    },
+    ticker(newval) {
+      this.ticker = newval.toUpperCase();
+    }
+  },
+
   methods: {
     hintClick(hint) {
       this.ticker = hint;
       this.add();
     },
+
     add() {
       if (this.tickerExists) {
         return;
       }
 
       const currentTicker = {
-        name: this.ticker.toUpperCase(),
+        name: this.ticker,
         price: "-"
       };
 
-      this.tickers.push(currentTicker);
-
-      setInterval(async () => {
-        const f = await fetch(
-          `https://min-api.cryptocompare.com/data/price?fsym=${currentTicker.name}&tsyms=USD&api_key=95bdf7e8c4ef1827e5f4b13d319b2ac9b409aa62feedc30f0f6553924d6ab246`
-        );
-        const data = await f.json();
-
-        // currentTicker.price =  data.USD > 1 ? data.USD.toFixed(2) : data.USD.toPrecision(2);
-        this.tickers.find(t => t.name === currentTicker.name).price =
-          data.USD > 1 ? data.USD.toFixed(2) : data.USD.toPrecision(2);
-
-        if (this.selectedTicker?.name === currentTicker.name) {
-          this.graph.push(data.USD);
-        }
-      }, 5000);
-      this.ticker = "";
+      this.tickers = [...this.tickers, currentTicker];
     },
 
     select(ticker) {
       this.selectedTicker = ticker;
-      this.graph = [];
     },
 
     handleDelete(tickerToRemove) {
       this.tickers = this.tickers.filter(t => t !== tickerToRemove);
+    },
+
+    addInterval(tickerName) {
+      setInterval(async () => {
+        const f = await fetch(
+          `https://min-api.cryptocompare.com/data/price?fsym=${tickerName}&tsyms=USD&api_key=95bdf7e8c4ef1827e5f4b13d319b2ac9b409aa62feedc30f0f6553924d6ab246`
+        );
+        const data = await f.json();
+
+        // currentTicker.price =  data.USD > 1 ? data.USD.toFixed(2) : data.USD.toPrecision(2);
+        this.tickers.find(t => t.name === tickerName).price =
+          data.USD > 1 ? data.USD.toFixed(2) : data.USD.toPrecision(2);
+
+        if (this.selectedTicker?.name === tickerName) {
+          this.graph.push(data.USD);
+        }
+      }, 5000);
     }
   }
 };
