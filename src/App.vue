@@ -203,7 +203,7 @@
 <script>
 // [x] 6. Наличие в состоянии ЗАВИСИМЫХ ДАННЫХ | Критичность: 5+
 // [ ] 4. Запросы напрямую внутри компонента (???) | Критичность: 5
-// [ ] 2. При удалении остается подписка на загрузку тикера | Критичность: 5
+// [x] 2. При удалении остается подписка на загрузку тикера | Критичность: 5
 // [ ] 5. Обработка ошибок API | Критичность: 5
 // [ ] 3. Количество запросов | Критичность: 4
 // [x] 8. При удалении тикера не изменяется localStorage | Критичность: 4
@@ -300,7 +300,7 @@ export default {
     },
 
     tickerExists() {
-      return !!this.tickers.find(t => t.name === this.ticker);
+      return !!this.findTicker(this.ticker);
     },
 
     normalizedGraph() {
@@ -342,7 +342,7 @@ export default {
       // sync to localstorage
       localStorage.setItem("cryptonomicon-list", JSON.stringify(newtickers));
 
-      // remote selected if it was deleted
+      // remove selected if it was deleted
       if (!newtickers.find(t => t.name === this.selectedTicker?.name)) {
         this.selectedTicker = null;
       }
@@ -386,24 +386,31 @@ export default {
     },
 
     handleDelete(tickerToRemove) {
+      clearInterval(tickerToRemove?.intervalID);
       this.tickers = this.tickers.filter(t => t !== tickerToRemove);
     },
 
+    findTicker(tickerName) {
+      return this.tickers.find(t => t.name === tickerName);
+    },
+
     subscribeToUpdates(tickerName) {
-      setInterval(async () => {
+      let intervalID = setInterval(async () => {
         const f = await fetch(
           `https://min-api.cryptocompare.com/data/price?fsym=${tickerName}&tsyms=USD&api_key=95bdf7e8c4ef1827e5f4b13d319b2ac9b409aa62feedc30f0f6553924d6ab246`
         );
         const data = await f.json();
 
         // currentTicker.price =  data.USD > 1 ? data.USD.toFixed(2) : data.USD.toPrecision(2);
-        this.tickers.find(t => t.name === tickerName).price =
+        this.findTicker(tickerName).price =
           data.USD > 1 ? data.USD.toFixed(2) : data.USD.toPrecision(2);
 
         if (this.selectedTicker?.name === tickerName) {
           this.graph.push(data.USD);
         }
-      }, 5000);
+      }, 10000);
+
+      this.findTicker(tickerName).intervalID = intervalID;
     }
   }
 };
