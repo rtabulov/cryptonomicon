@@ -419,29 +419,23 @@ export default {
       setInterval(async () => {
         if (this.tickers.length < 1) return;
 
-        try {
-          let csv = this.tickers.map(t => t.name).join(",");
-          const f = await fetch(
-            `https://min-api.cryptocompare.com/data/pricemulti?fsyms=${csv}&tsyms=USD&api_key=95bdf7e8c4ef1827e5f4b13d319b2ac9b409aa62feedc30f0f6553924d6ab246`
-          );
+        let csv = this.tickers.map(t => t.name).join(",");
+        const f = await fetch(
+          `https://min-api.cryptocompare.com/data/pricemulti?fsyms=${csv}&tsyms=USD&api_key=95bdf7e8c4ef1827e5f4b13d319b2ac9b409aa62feedc30f0f6553924d6ab246`
+        );
 
-          if (f.ok) {
-            const coins = await f.json();
-            Object.keys(coins).forEach(coin => {
-              let { USD } = coins[coin];
+        if (f.ok) {
+          const coins = await f.json();
+          Object.keys(coins).forEach(coin => {
+            let { USD } = coins[coin];
 
-              this.findTicker(coin).price =
-                USD > 1 ? USD.toFixed(2) : USD.toPrecision(2);
+            this.findTicker(coin).price =
+              USD > 1 ? USD.toFixed(2) : USD.toPrecision(2);
 
-              if (this.selectedTicker?.name === coin) {
-                this.graph.push(USD);
-              }
-            });
-          } else {
-            this.errorMessage = "failed";
-          }
-        } catch (e) {
-          this.errorMessage = "failed";
+            if (this.selectedTicker?.name === coin) {
+              this.graph.push(USD);
+            }
+          });
         }
       }, 10500);
     }
