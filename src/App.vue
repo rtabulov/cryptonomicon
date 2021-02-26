@@ -4,7 +4,15 @@
       v-if="!ready"
       class="fixed w-100 h-100 opacity-80 bg-purple-800 inset-0 z-50 flex items-center justify-center"
     >
+      <h1
+        class="text-2xl text-white mx-16 pb-12 text-center whitespace-pre-wrap"
+        v-if="errorMessage"
+      >
+        {{ errorMessage }}
+      </h1>
+
       <svg
+        v-else
         class="animate-spin -ml-1 mr-3 h-12 w-12 text-white"
         xmlns="http://www.w3.org/2000/svg"
         fill="none"
@@ -204,7 +212,7 @@
 // [x] 6. Наличие в состоянии ЗАВИСИМЫХ ДАННЫХ | Критичность: 5+
 // [ ] 4. Запросы напрямую внутри компонента (???) | Критичность: 5
 // [x] 2. При удалении остается подписка на загрузку тикера | Критичность: 5
-// [ ] 5. Обработка ошибок API | Критичность: 5
+// [x] 5. Обработка ошибок API | Критичность: 5
 // [ ] 3. Количество запросов | Критичность: 4
 // [x] 8. При удалении тикера не изменяется localStorage | Критичность: 4
 // [x] 1. Одинаковый код в watch | Критичность: 3
@@ -220,12 +228,20 @@ export default {
   name: "App",
 
   async created() {
-    // load autocomplete data
-    let response = await fetch(
-      "https://min-api.cryptocompare.com/data/all/coinlist?summary=true"
-    );
-    let { Data } = await response.json();
-    this.autocomplete = Data;
+    // load cryptoObject data
+    try {
+      let response = await fetch(
+        "https://min-api.cryptocompare.com/data/all/coinlist?summary=true"
+      );
+      if (response.ok) {
+        let { Data } = await response.json();
+        this.cryptoObject = Data;
+      } else {
+        this.errorMessage = `Coin list fetch failed. \n${response.status} ${response.statusText}`;
+      }
+    } catch (e) {
+      this.errorMessage = `Coin list fetch failed. \n${e} \nTry reloading this page.`;
+    }
 
     // load tickers from localstorage
     let list = window.localStorage.getItem("cryptonomicon-list");
@@ -253,9 +269,10 @@ export default {
       tickers: [],
       selectedTicker: null,
       graph: [],
-      autocomplete: {},
+      cryptoObject: {},
       filter: "",
-      page: 1
+      page: 1,
+      errorMessage: null
     };
   },
 
@@ -284,17 +301,17 @@ export default {
     },
 
     ready() {
-      return Object.keys(this.autocomplete).length > 0;
+      return !this.errorMessage && Object.keys(this.cryptoObject).length > 0;
     },
 
     hints() {
       if (this.ticker.length === 0) return [];
 
-      return Object.keys(this.autocomplete)
+      return Object.keys(this.cryptoObject)
         .filter(
           coin =>
             coin.includes(this.ticker) ||
-            this.autocomplete[coin].FullName.toUpperCase().includes(this.ticker)
+            this.cryptoObject[coin].FullName.toUpperCase().includes(this.ticker)
         )
         .slice(0, 4);
     },
@@ -313,7 +330,7 @@ export default {
     },
 
     tickerIsValid() {
-      return Object.keys(this.autocomplete).includes(this.ticker);
+      return Object.keys(this.cryptoObject).includes(this.ticker);
     },
 
     pageStateOptions() {
@@ -396,19 +413,27 @@ export default {
 
     subscribeToUpdates(tickerName) {
       let intervalID = setInterval(async () => {
-        const f = await fetch(
-          `https://min-api.cryptocompare.com/data/price?fsym=${tickerName}&tsyms=USD&api_key=95bdf7e8c4ef1827e5f4b13d319b2ac9b409aa62feedc30f0f6553924d6ab246`
-        );
-        const data = await f.json();
+        try {
+          const f = await fetch(
+            `https://min-api.cryptocompare.com/data/price?fsym=${tickerName}&tsyms=USD&api_key=95bdf7e8c4ef1827e5f4b13d319b2ac9b409aa62feedc30f0f6553924d6ab246`
+          );
+          if (f.ok) {
+            const { USD } = await f.json();
 
-        // currentTicker.price =  data.USD > 1 ? data.USD.toFixed(2) : data.USD.toPrecision(2);
-        this.findTicker(tickerName).price =
-          data.USD > 1 ? data.USD.toFixed(2) : data.USD.toPrecision(2);
+            // currentTicker.price =  USD > 1 ? USD.toFixed(2) : USD.toPrecision(2);
+            this.findTicker(tickerName).price =
+              USD > 1 ? USD.toFixed(2) : USD.toPrecision(2);
 
-        if (this.selectedTicker?.name === tickerName) {
-          this.graph.push(data.USD);
+            if (this.selectedTicker?.name === tickerName) {
+              this.graph.push(USD);
+            }
+          } else {
+            this.findTicker(tickerName).price = "failed";
+          }
+        } catch (e) {
+          this.findTicker(tickerName).price = "failed";
         }
-      }, 10000);
+      }, 10500);
 
       this.findTicker(tickerName).intervalID = intervalID;
     }
