@@ -201,6 +201,21 @@
 </template>
 
 <script>
+// [x] 6. Наличие в состоянии ЗАВИСИМЫХ ДАННЫХ | Критичность: 5+
+// [ ] 4. Запросы напрямую внутри компонента (???) | Критичность: 5
+// [ ] 2. При удалении остается подписка на загрузку тикера | Критичность: 5
+// [ ] 5. Обработка ошибок API | Критичность: 5
+// [ ] 3. Количество запросов | Критичность: 4
+// [x] 8. При удалении тикера не изменяется localStorage | Критичность: 4
+// [x] 1. Одинаковый код в watch | Критичность: 3
+// [ ] 9. localStorage и анонимные вкладки | Критичность: 3
+// [ ] 7. График ужасно выглядит если будет много цен | Критичность: 2
+// [ ] 10. Магические строки и числа (URL, 5000 миллисекунд задержки, ключ локал стораджа, количество на странице) |  Критичность: 1
+
+// Параллельно
+// [x] График сломан если везде одинаковые значения
+// [x] При удалении тикера остается выбор
+
 export default {
   name: "App",
 
@@ -261,7 +276,7 @@ export default {
     },
 
     endIndex() {
-      return this.startIndex + 6;
+      return this.page * 6;
     },
 
     paginatedTickers() {
@@ -295,34 +310,42 @@ export default {
       return this.graph.map(
         price => 5 + ((price - minValue) * 95) / (maxValue - minValue)
       );
+    },
+
+    tickerIsValid() {
+      return Object.keys(this.autocomplete).includes(this.ticker);
+    },
+
+    pageStateOptions() {
+      return { filter: this.filter, page: this.page };
     }
   },
 
   watch: {
-    page(newpage) {
-      window.history.pushState(
-        null,
-        window.document.title,
-        `${window.location.pathname}?page=${newpage}&filter=${this.filter}`
-      );
+    filter() {
+      this.page = 1;
     },
 
-    filter(newfilter) {
+    pageStateOptions(value) {
       window.history.pushState(
         null,
         window.document.title,
-        `${window.location.pathname}?page=${this.page}&filter=${newfilter}`
+        `${window.location.pathname}?page=${value.page}&filter=${value.filter}`
       );
-
-      this.page = 1;
     },
 
     selectedTicker() {
       this.graph = [];
     },
 
-    tickers() {
-      localStorage.setItem("cryptonomicon-list", JSON.stringify(this.tickers));
+    tickers(newtickers) {
+      // sync to localstorage
+      localStorage.setItem("cryptonomicon-list", JSON.stringify(newtickers));
+
+      // remote selected if it was deleted
+      if (!newtickers.find(t => t.name === this.selectedTicker?.name)) {
+        this.selectedTicker = null;
+      }
     },
 
     filteredTickers(newtickers) {
@@ -343,7 +366,7 @@ export default {
     },
 
     add() {
-      if (this.tickerExists) {
+      if (this.tickerExists || !this.tickerIsValid) {
         return;
       }
 
