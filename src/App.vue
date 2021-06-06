@@ -2,18 +2,10 @@
   <div class="bg-gray-100">
     <div class="container mx-auto flex flex-col items-center p-4">
       <div
-        v-if="!ready || errorMessage"
+        v-if="pageStatus === 0"
         class="fixed w-100 h-100 opacity-80 bg-purple-800 inset-0 z-50 flex items-center justify-center"
       >
-        <h1
-          class="text-2xl text-white mx-16 pb-12 text-center whitespace-pre-wrap"
-          v-if="errorMessage"
-        >
-          {{ errorMessage }}
-        </h1>
-
         <svg
-          v-else
           class="animate-spin -ml-1 mr-3 h-12 w-12 text-white"
           xmlns="http://www.w3.org/2000/svg"
           fill="none"
@@ -35,7 +27,17 @@
         </svg>
       </div>
 
-      <div class="container">
+      <div
+        v-else-if="pageStatus === -1"
+        class="fixed w-100 h-100 opacity-80 text-center bg-purple-800 inset-0 z-50 flex flex-col items-center justify-center text-white"
+      >
+        <h1 class="text-2xl mx-16 mb-4">
+          Coin list fetch failed. Try reloading this page.
+        </h1>
+        <pre class="text-base block">{{ errorMessage }}</pre>
+      </div>
+
+      <div v-else class="container">
         <div class="w-full my-4"></div>
         <section>
           <div class="flex">
@@ -227,6 +229,7 @@
 // Параллельно
 // [x] График сломан если везде одинаковые значения
 // [x] При удалении тикера остается выбор
+import axios from "axios";
 
 export default {
   name: "App",
@@ -234,38 +237,29 @@ export default {
   async created() {
     // load cryptoObject data
     try {
-      let response = await fetch(
+      let response = await axios.get(
         "https://min-api.cryptocompare.com/data/all/coinlist?summary=true"
       );
-      if (response.ok) {
-        let { Data } = await response.json();
-        this.cryptoObject = Data;
-      } else {
-        this.errorMessage = `Coin list fetch failed. \n${response.status} ${response.statusText}`;
-      }
+      this.cryptoObject = response.data.Data;
+      this.pageStatus = 1;
     } catch (e) {
-      this.errorMessage = `Coin list fetch failed. \n${e} \nTry reloading this page.`;
+      this.errorMessage = String(e.toString());
+      this.pageStatus = -1;
     }
 
+    // subscribe to updates
     this.subscribeToUpdates();
 
-    // load tickers from localstorage
+    // load tickers from localStorage
     let list = window.localStorage.getItem("cryptonomicon-list");
-    if (list) {
-      this.tickers = JSON.parse(list);
-    }
+    this.tickers = JSON.parse(list) || [];
 
     // load filter and page
     let { filter, page } = Object.fromEntries(
       new URLSearchParams(window.location.search).entries()
     );
-    if (page) {
-      this.page = +page;
-    }
-
-    if (filter) {
-      this.page = filter;
-    }
+    page && (this.page = +page);
+    filter && (this.filter = filter);
   },
 
   data() {
@@ -277,7 +271,8 @@ export default {
       cryptoObject: {},
       filter: "",
       page: 1,
-      errorMessage: null
+      errorMessage: null,
+      pageStatus: 0
     };
   },
 
@@ -305,10 +300,6 @@ export default {
       return this.filteredTickers.slice(this.startIndex, this.endIndex);
     },
 
-    ready() {
-      return !this.errorMessage && Object.keys(this.cryptoObject).length > 0;
-    },
-
     hints() {
       if (this.ticker.length === 0) return [];
 
@@ -322,7 +313,7 @@ export default {
     },
 
     tickerExists() {
-      return !!this.findTicker(this.ticker);
+      return !!this.tickers.find(t => t.name === this.ticker);
     },
 
     normalizedGraph() {
@@ -360,19 +351,14 @@ export default {
       this.graph = [];
     },
 
-    tickers(newtickers) {
+    tickers(value) {
       // sync to localstorage
-      localStorage.setItem("cryptonomicon-list", JSON.stringify(newtickers));
-
-      // remove selected if it was deleted
-      if (!newtickers.find(t => t.name === this.selectedTicker?.name)) {
-        this.selectedTicker = null;
-      }
+      localStorage.setItem("cryptonomicon-list", JSON.stringify(value));
     },
 
-    filteredTickers(newtickers) {
-      if (this.startIndex >= newtickers.length) {
-        this.page = 1;
+    paginatedTickers(newtickers) {
+      if (newtickers.length == 0 && this.page > 1) {
+        this.page -= 1;
       }
     },
 
@@ -392,27 +378,29 @@ export default {
         return;
       }
 
-      const currentTicker = {
-        name: this.ticker,
-        price: "-"
-      };
-
-      this.tickers = [...this.tickers, currentTicker];
+      this.tickers = [
+        ...this.tickers,
+        {
+          name: this.ticker,
+          price: "-"
+        }
+      ];
 
       this.ticker = "";
     },
 
-    select(ticker) {
-      this.selectedTicker = ticker;
+    select(t) {
+      this.selectedTicker = t;
     },
 
     handleDelete(tickerToRemove) {
       clearInterval(tickerToRemove?.intervalID);
       this.tickers = this.tickers.filter(t => t !== tickerToRemove);
-    },
 
-    findTicker(tickerName) {
-      return this.tickers.find(t => t.name === tickerName);
+      // remove selected if it was deleted
+      if (tickerToRemove.name === this.selectedTicker?.name) {
+        this.tickers = this.tickers.filter(t => t.name !== tickerToRemove.name);
+      }
     },
 
     subscribeToUpdates() {
@@ -429,7 +417,7 @@ export default {
           Object.keys(coins).forEach(coin => {
             let { USD } = coins[coin];
 
-            this.findTicker(coin).price =
+            this.tickers.find(t => t.name === coin).price =
               USD > 1 ? USD.toFixed(2) : USD.toPrecision(2);
 
             if (this.selectedTicker?.name === coin) {
