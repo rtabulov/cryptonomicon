@@ -304,7 +304,7 @@ export default {
       page: 1,
       errorMessage: null,
       pageStatus: 0,
-      maxGraphLength: 10
+      maxGraphLength: 1
     };
   },
 
@@ -469,6 +469,7 @@ export default {
 
     select(t) {
       this.selectedTicker = t;
+      this.$nextTick().then(this.calculateMaxGraphLength);
     },
 
     handleDelete(tickerToRemove) {
