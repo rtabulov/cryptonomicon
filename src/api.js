@@ -66,7 +66,6 @@ ws.addEventListener("message", e => {
     if (tsym === "USD") {
       const cbs = tickersHandlers.get(fsym) || [];
       tickersHandlers.delete(fsym);
-      console.log(fsym);
       cbs.forEach(cb =>
         subscribeToTicker(
           fsym,
