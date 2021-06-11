@@ -386,7 +386,6 @@ export default {
 
   methods: {
     subscribe({ name, price, error, message }) {
-      console.log({ name, price, error, message });
       if (error) {
         console.log({ error, message });
         this.getTicker(name).error = message;
