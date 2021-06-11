@@ -104,7 +104,6 @@
             <label>Фильтр</label>
             <input
               v-model="filter"
-              @keydown.enter="add()"
               type="text"
               class="block mt-1 relative shadow-md w-52 pr-10 border-gray-300 text-gray-900 focus:outline-none focus:ring-gray-500 focus:border-gray-500 sm:text-sm rounded-md"
               placeholder="Поиск: например DOGE"
@@ -128,22 +127,24 @@
             </div>
           </div>
           <hr class="w-full border-t border-gray-600 my-4" />
-          <dl class="mt-5 grid grid-cols-1 gap-5 sm:grid-cols-3">
+          <dl class="mt-5 grid grid-cols-1 gap-5 sm:grid-cols-3 items-center">
             <div
               v-for="t in paginatedTickers"
               :key="t.name"
               @click="select(t)"
-              :class="{
-                'border-4': selectedTicker === t
-              }"
               class="bg-white overflow-hidden shadow rounded-lg border-purple-800 border-solid cursor-pointer"
+              :class="{
+                'border-4': selectedTicker?.name === t.name,
+                'my-1': selectedTicker?.name !== t.name,
+                'bg-red-100': t.error
+              }"
             >
               <div class="px-4 py-5 sm:p-6 text-center">
                 <dt class="text-sm font-medium text-gray-500 truncate">
                   {{ t.name }} - USD
                 </dt>
                 <dd class="mt-1 text-3xl font-semibold text-gray-900">
-                  {{ t.price }}
+                  {{ formatPrice(t.price) }}
                 </dd>
               </div>
               <div class="w-full border-t border-gray-200"></div>
@@ -230,6 +231,19 @@
 // [x] График сломан если везде одинаковые значения
 // [x] При удалении тикера остается выбор
 import axios from "axios";
+import { subscribeToTicker, unsubscribeFromTicker } from "./api";
+
+// const DEFAULT_COINS = [
+//   { name: "BTC" },
+//   { name: "ETH" },
+//   { name: "DOGE" },
+//   { name: "XPR" },
+//   { name: "ADA" },
+//   { name: "USDT" },
+//   { name: "LINK" },
+//   { name: "UNI" },
+//   { name: "DOT" }
+// ];
 
 export default {
   name: "App",
@@ -238,7 +252,10 @@ export default {
     // load cryptoObject data
     try {
       let response = await axios.get(
-        "https://min-api.cryptocompare.com/data/all/coinlist?summary=true"
+        "https://min-api.cryptocompare.com/data/all/coinlist?summary=true",
+        {
+          timeout: 5000
+        }
       );
       this.cryptoObject = response.data.Data;
       this.pageStatus = 1;
@@ -247,12 +264,12 @@ export default {
       this.pageStatus = -1;
     }
 
-    // subscribe to updates
-    this.subscribeToUpdates();
-
     // load tickers from localStorage
     let list = window.localStorage.getItem("cryptonomicon-list");
     this.tickers = JSON.parse(list) || [];
+    this.tickers.forEach(t => {
+      subscribeToTicker(t.name, this.subscribe);
+    });
 
     // load filter and page
     let { filter, page } = Object.fromEntries(
@@ -313,7 +330,7 @@ export default {
     },
 
     tickerExists() {
-      return !!this.tickers.find(t => t.name === this.ticker);
+      return !!this.getTicker(this.ticker);
     },
 
     normalizedGraph() {
@@ -368,6 +385,40 @@ export default {
   },
 
   methods: {
+    subscribe({ name, price, error, message }) {
+      console.log({ name, price, error, message });
+      if (error) {
+        console.log({ error, message });
+        this.getTicker(name).error = message;
+        this.tickers = this.tickers.slice();
+        return;
+      }
+
+      this.getTicker(name).price = price;
+      this.tickers = this.tickers.slice();
+      if (this.selectedTicker?.name === name) {
+        this.graph.push(price);
+      }
+    },
+
+    getTicker(name) {
+      return this.tickers.find(t => t.name === name);
+    },
+
+    formatPrice(price = 0) {
+      if (typeof price !== "number") {
+        return price;
+      }
+
+      price = Number(price);
+
+      if (price < 1) {
+        return price.toPrecision(3);
+      }
+
+      return price.toFixed(2);
+    },
+
     hintClick(hint) {
       this.ticker = hint;
       this.add();
@@ -377,16 +428,16 @@ export default {
       if (this.tickerExists || !this.tickerIsValid) {
         return;
       }
+      const newTicker = {
+        name: this.ticker,
+        price: "-"
+      };
 
-      this.tickers = [
-        ...this.tickers,
-        {
-          name: this.ticker,
-          price: "-"
-        }
-      ];
-
+      this.tickers = [...this.tickers, newTicker];
       this.ticker = "";
+      this.filter = "";
+
+      subscribeToTicker(newTicker.name, this.subscribe);
     },
 
     select(t) {
@@ -394,38 +445,15 @@ export default {
     },
 
     handleDelete(tickerToRemove) {
-      clearInterval(tickerToRemove?.intervalID);
-      this.tickers = this.tickers.filter(t => t !== tickerToRemove);
+      clearInterval(tickerToRemove.intervalID);
+      this.tickers = this.tickers.filter(t => t.name !== tickerToRemove.name);
 
       // remove selected if it was deleted
       if (tickerToRemove.name === this.selectedTicker?.name) {
-        this.tickers = this.tickers.filter(t => t.name !== tickerToRemove.name);
+        this.selectedTicker = null;
       }
-    },
 
-    subscribeToUpdates() {
-      setInterval(async () => {
-        if (this.tickers.length < 1) return;
-
-        let csv = this.tickers.map(t => t.name).join(",");
-        const f = await fetch(
-          `https://min-api.cryptocompare.com/data/pricemulti?fsyms=${csv}&tsyms=USD&api_key=95bdf7e8c4ef1827e5f4b13d319b2ac9b409aa62feedc30f0f6553924d6ab246`
-        );
-
-        if (f.ok) {
-          const coins = await f.json();
-          Object.keys(coins).forEach(coin => {
-            let { USD } = coins[coin];
-
-            this.tickers.find(t => t.name === coin).price =
-              USD > 1 ? USD.toFixed(2) : USD.toPrecision(2);
-
-            if (this.selectedTicker?.name === coin) {
-              this.graph.push(USD);
-            }
-          });
-        }
-      }, 10500);
+      unsubscribeFromTicker(tickerToRemove.name, this.subscribe);
     }
   }
 };
