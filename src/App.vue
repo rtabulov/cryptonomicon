@@ -174,12 +174,16 @@
           <h3 class="text-lg leading-6 font-medium text-gray-900 my-8">
             {{ selectedTicker.name }} - USD
           </h3>
-          <div class="flex items-end border-gray-600 border-b border-l h-64">
+          <div
+            ref="graph"
+            class="flex items-end border-gray-600 border-b border-l h-64"
+          >
             <div
+              ref="graphbar"
               v-for="(bar, idx) in normalizedGraph"
               :key="idx"
-              :style="{ height: `${bar}%` }"
-              class="bg-purple-800 border w-10"
+              :style="{ height: `${bar}%`, width: `${graphbarWidth}px` }"
+              class="bg-purple-800 border"
             ></div>
           </div>
           <button
@@ -232,6 +236,7 @@
 // [x] При удалении тикера остается выбор
 import axios from "axios";
 import { subscribeToTicker, unsubscribeFromTicker } from "./api";
+import { debounce } from "lodash";
 
 // const DEFAULT_COINS = [
 //   { name: "BTC" },
@@ -279,7 +284,16 @@ export default {
     filter && (this.filter = filter);
   },
 
+  mounted() {
+    window.addEventListener("resize", this.calculateMaxGraphLength);
+  },
+
+  beforeUnmount() {
+    window.removeEventListener("resize", this.calculateMaxGraphLength);
+  },
+
   data() {
+    this.graphbarWidth = 35;
     return {
       ticker: "",
       tickers: [],
@@ -289,7 +303,8 @@ export default {
       filter: "",
       page: 1,
       errorMessage: null,
-      pageStatus: 0
+      pageStatus: 0,
+      maxGraphLength: 10
     };
   },
 
@@ -352,6 +367,9 @@ export default {
   },
 
   watch: {
+    maxGraphLength(v) {
+      this.graph = this.graph.slice(-v);
+    },
     filter() {
       this.page = 1;
     },
@@ -385,6 +403,15 @@ export default {
   },
 
   methods: {
+    calculateMaxGraphLength: debounce(function() {
+      if (!this.$refs.graph) {
+        return;
+      }
+
+      this.maxGraphLength = Math.ceil(
+        this.$refs.graph.clientWidth / this.graphbarWidth
+      );
+    }, 200),
     subscribe({ name, price, error, message }) {
       if (error) {
         console.log({ error, message });
@@ -397,6 +424,7 @@ export default {
       this.tickers = this.tickers.slice();
       if (this.selectedTicker?.name === name) {
         this.graph.push(price);
+        this.graph = this.graph.slice(-this.maxGraphLength);
       }
     },
 
