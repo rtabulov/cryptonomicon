@@ -14,7 +14,7 @@
         x="0"
         y="0"
         viewBox="0 0 511.76 511.76"
-        style="enable-background:new 0 0 512 512"
+        style="enable-background: new 0 0 512 512"
         xml:space="preserve"
       >
         <g>
@@ -72,7 +72,7 @@ export default {
   },
 
   mounted() {
-    this.$nextTick().then(this.calculateMaxGraphLength);
+    this.calculateMaxGraphLength();
     window.addEventListener("resize", this.calculateMaxGraphLength);
   },
 
@@ -96,15 +96,19 @@ export default {
   },
 
   methods: {
-    calculateMaxGraphLength: debounce(function() {
-      if (!this.$refs.graph) {
-        return;
-      }
+    calculateMaxGraphLength: debounce(
+      function() {
+        if (!this.$refs.graph) {
+          return;
+        }
 
-      this.maxGraphLength = Math.ceil(
-        this.$refs.graph.clientWidth / this.graphbarWidth
-      );
-    }, 150),
+        this.maxGraphLength = Math.ceil(
+          this.$refs.graph.clientWidth / this.graphbarWidth
+        );
+      },
+      150,
+      { leading: true }
+    ),
     clickHandler() {
       this.$emit("close-click");
     }

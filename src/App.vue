@@ -3,7 +3,18 @@
     <div class="container mx-auto flex flex-col items-center p-4">
       <div
         v-if="pageStatus === 0"
-        class="fixed w-100 h-100 opacity-80 bg-purple-800 inset-0 z-50 flex items-center justify-center"
+        class="
+          fixed
+          w-100
+          h-100
+          opacity-80
+          bg-purple-800
+          inset-0
+          z-50
+          flex
+          items-center
+          justify-center
+        "
       >
         <svg
           class="animate-spin -ml-1 mr-3 h-12 w-12 text-white"
@@ -29,7 +40,20 @@
 
       <div
         v-else-if="pageStatus === -1"
-        class="fixed w-100 h-100 opacity-80 text-center bg-purple-800 inset-0 z-50 flex flex-col items-center justify-center text-white"
+        class="
+          fixed
+          w-100
+          h-100
+          opacity-80
+          text-center
+          bg-purple-800
+          inset-0
+          z-50
+          flex flex-col
+          items-center
+          justify-center
+          text-white
+        "
       >
         <h1 class="text-2xl mx-16 mb-4">
           Coin list fetch failed. Try reloading this page.
@@ -51,20 +75,70 @@
             <input
               v-model="filter"
               type="text"
-              class="block mt-1 relative shadow-md w-52 pr-10 border-gray-300 text-gray-900 focus:outline-none focus:ring-gray-500 focus:border-gray-500 sm:text-sm rounded-md"
+              class="
+                block
+                mt-1
+                relative
+                shadow-md
+                w-52
+                pr-10
+                border-gray-300
+                text-gray-900
+                focus:outline-none
+                focus:ring-gray-500
+                focus:border-gray-500
+                sm:text-sm
+                rounded-md
+              "
               placeholder="например DOGE"
             />
 
             <div class="space-x-4 my-4">
               <button
-                class="inline-flex items-center py-2 px-4 border border-transparent shadow-sm text-sm leading-4 font-medium rounded-full text-white bg-gray-600 hover:bg-gray-700 transition-colors duration-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
+                class="
+                  inline-flex
+                  items-center
+                  py-2
+                  px-4
+                  border border-transparent
+                  shadow-sm
+                  text-sm
+                  leading-4
+                  font-medium
+                  rounded-full
+                  text-white
+                  bg-gray-600
+                  hover:bg-gray-700
+                  transition-colors
+                  duration-300
+                  focus:outline-none
+                  focus:ring-2 focus:ring-offset-2 focus:ring-gray-500
+                "
                 @click="page -= 1"
                 v-if="page > 1"
               >
                 Назад
               </button>
               <button
-                class="inline-flex items-center py-2 px-4 border border-transparent shadow-sm text-sm leading-4 font-medium rounded-full text-white bg-gray-600 hover:bg-gray-700 transition-colors duration-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
+                class="
+                  inline-flex
+                  items-center
+                  py-2
+                  px-4
+                  border border-transparent
+                  shadow-sm
+                  text-sm
+                  leading-4
+                  font-medium
+                  rounded-full
+                  text-white
+                  bg-gray-600
+                  hover:bg-gray-700
+                  transition-colors
+                  duration-300
+                  focus:outline-none
+                  focus:ring-2 focus:ring-offset-2 focus:ring-gray-500
+                "
                 @click="page += 1"
                 v-if="hasNextPage"
               >
@@ -78,7 +152,14 @@
               v-for="t in paginatedTickers"
               :key="t.name"
               @click="select(t)"
-              class="bg-white overflow-hidden shadow rounded-lg border-purple-800 border-solid cursor-pointer"
+              class="
+                bg-white
+                overflow-hidden
+                shadow
+                rounded-lg
+                border-purple-800 border-solid
+                cursor-pointer
+              "
               :class="{
                 'border-4': selectedTicker?.name === t.name,
                 'my-1': selectedTicker?.name !== t.name,
@@ -96,7 +177,23 @@
               <div class="w-full border-t border-gray-200"></div>
               <button
                 @click.stop="handleDelete(t)"
-                class="flex items-center justify-center font-medium w-full bg-gray-100 px-4 py-4 sm:px-6 text-md text-gray-500 hover:text-gray-600 hover:bg-gray-200 hover:opacity-20 transition-all focus:outline-none"
+                class="
+                  flex
+                  items-center
+                  justify-center
+                  font-medium
+                  w-full
+                  bg-gray-100
+                  px-4
+                  py-4
+                  sm:px-6
+                  text-md text-gray-500
+                  hover:text-gray-600
+                  hover:bg-gray-200
+                  hover:opacity-20
+                  transition-all
+                  focus:outline-none
+                "
               >
                 <svg
                   class="h-5 w-5"
@@ -161,7 +258,7 @@ import CryptoGraph from "./components/CryptoGraph.vue";
 //   { name: "DOT" }
 // ];
 
-const MAX_GRAPH_LENGTH = 100;
+const MAX_GRAPH_LENGTH = 80;
 
 export default {
   name: "App",
@@ -308,7 +405,7 @@ export default {
       this.getTicker(name).price = price;
       this.tickers = this.tickers.slice();
       if (this.selectedTicker?.name === name) {
-        this.graph.push(price);
+        this.graph = [...this.graph, price];
       }
     },
 
