@@ -194,10 +194,6 @@ import {
 } from './api'
 import axios from 'axios'
 import { defineComponent } from 'vue'
-import AddTicker from './components/AddTicker.vue'
-import CryptoGraph from './components/CryptoGraph.vue'
-import AppError from './components/AppError.vue'
-import AppLoader from './components/AppLoader.vue'
 
 // const DEFAULT_COINS = [
 //   { name: "BTC" },
@@ -229,13 +225,6 @@ interface CryptoData {
 
 export default defineComponent({
   name: 'App',
-
-  components: {
-    AddTicker,
-    CryptoGraph,
-    AppError,
-    AppLoader,
-  },
 
   data() {
     return {

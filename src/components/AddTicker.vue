@@ -63,13 +63,9 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, PropType } from '@vue/runtime-core'
-import AddButton from './AddButton.vue'
+import { defineComponent, PropType } from 'vue'
 
 export default defineComponent({
-  components: {
-    AddButton,
-  },
   props: {
     getHints: {
       type: Function as PropType<(prop: string) => string[]>,
