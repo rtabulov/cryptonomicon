@@ -3,7 +3,7 @@
     <h3 class="text-lg leading-6 font-medium text-gray-900 my-8">
       {{ heading }}
     </h3>
-    <button @click="clickHandler" type="button" class="absolute top-0 right-0">
+    <button type="button" class="absolute top-0 right-0" @click="clickHandler">
       <svg
         xmlns="http://www.w3.org/2000/svg"
         xmlns:xlink="http://www.w3.org/1999/xlink"
@@ -31,8 +31,8 @@
       class="flex items-end border-gray-600 border-b border-l h-64"
     >
       <div
-        ref="graphbar"
         v-for="(bar, idx) in slicedGraph"
+        ref="graphbar"
         :key="idx"
         :style="{ height: `${bar}%`, width: `${graphbarWidth}px` }"
         class="bg-purple-800 border"
@@ -41,77 +41,77 @@
   </section>
 </template>
 <script>
-import { debounce } from "lodash";
+import { debounce } from 'lodash'
 
 export default {
   props: {
     graph: {
       type: Array,
-      reqiured: true
+      default: () => [],
     },
     graphbarWidth: {
       type: Number,
       required: false,
-      default: 35
+      default: 35,
     },
     heading: {
       type: String,
       required: false,
-      default: "Graph"
-    }
+      default: 'Graph',
+    },
   },
 
   emits: {
-    "close-click": null
+    'close-click': null,
   },
 
   data() {
     return {
-      maxGraphLength: 1
-    };
-  },
-
-  mounted() {
-    this.calculateMaxGraphLength();
-    window.addEventListener("resize", this.calculateMaxGraphLength);
-  },
-
-  beforeUnmount() {
-    window.removeEventListener("resize", this.calculateMaxGraphLength);
+      maxGraphLength: 1,
+    }
   },
 
   computed: {
     normalizedGraph() {
-      const maxValue = Math.max(...this.graph);
-      const minValue = Math.min(...this.graph);
-      if (minValue === maxValue) return new Array(this.graph.length).fill(50);
+      const maxValue = Math.max(...this.graph)
+      const minValue = Math.min(...this.graph)
+      if (minValue === maxValue) return new Array(this.graph.length).fill(50)
       return this.graph.map(
-        price => 5 + ((price - minValue) * 95) / (maxValue - minValue)
-      );
+        (price) => 5 + ((price - minValue) * 95) / (maxValue - minValue),
+      )
     },
 
     slicedGraph() {
-      return this.normalizedGraph.slice(-this.maxGraphLength);
-    }
+      return this.normalizedGraph.slice(-this.maxGraphLength)
+    },
+  },
+
+  mounted() {
+    this.calculateMaxGraphLength()
+    window.addEventListener('resize', this.calculateMaxGraphLength)
+  },
+
+  beforeUnmount() {
+    window.removeEventListener('resize', this.calculateMaxGraphLength)
   },
 
   methods: {
     calculateMaxGraphLength: debounce(
-      function() {
+      function () {
         if (!this.$refs.graph) {
-          return;
+          return
         }
 
         this.maxGraphLength = Math.ceil(
-          this.$refs.graph.clientWidth / this.graphbarWidth
-        );
+          this.$refs.graph.clientWidth / this.graphbarWidth,
+        )
       },
       150,
-      { leading: true }
+      { leading: true },
     ),
     clickHandler() {
-      this.$emit("close-click");
-    }
-  }
-};
+      this.$emit('close-click')
+    },
+  },
+}
 </script>

@@ -1,24 +1,24 @@
-import { defineConfig } from "vite";
-import vue from "@vitejs/plugin-vue";
-import WindiCSS from "vite-plugin-windicss";
+import { defineConfig } from 'vite'
+import vue from '@vitejs/plugin-vue'
+import WindiCSS from 'vite-plugin-windicss'
 
-import path from "path";
+import path from 'path'
 
 export default defineConfig({
   plugins: [vue(), WindiCSS()],
   server: {
-    port: 8080
+    port: 8080,
   },
   resolve: {
     alias: [
       {
-        find: "@",
-        replacement: path.resolve(__dirname, "src")
-      }
-    ]
+        find: '@',
+        replacement: path.resolve(__dirname, 'src'),
+      },
+    ],
   },
   build: {
     chunkSizeWarningLimit: 600,
-    cssCodeSplit: false
-  }
-});
+    cssCodeSplit: false,
+  },
+})
