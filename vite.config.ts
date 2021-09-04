@@ -3,11 +3,21 @@ import vue from '@vitejs/plugin-vue'
 import WindiCSS from 'vite-plugin-windicss'
 import eslint from 'vite-plugin-eslint'
 import Components from 'unplugin-vue-components/vite'
+import viteSvgIcons from 'vite-plugin-svg-icons'
 
 import path from 'path'
 
 export default defineConfig({
-  plugins: [vue(), WindiCSS(), eslint(), Components()],
+  plugins: [
+    vue(),
+    WindiCSS(),
+    eslint(),
+    Components(),
+    viteSvgIcons({
+      iconDirs: [path.resolve(process.cwd(), 'src/icons')],
+      symbolId: 'icon-[dir]-[name]',
+    }),
+  ],
   server: {
     port: 8080,
   },
