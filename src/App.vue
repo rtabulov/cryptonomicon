@@ -77,11 +77,12 @@
               type="text"
               class="
                 block
-                mt-1
+                mt-2
                 relative
                 shadow-md
                 w-52
                 pr-10
+                p-2
                 border-gray-300
                 text-gray-900
                 focus:outline-none
