@@ -1,65 +1,9 @@
 <template>
   <div class="bg-gray-100">
     <div class="container mx-auto flex flex-col items-center p-4">
-      <div
-        v-if="pageStatus === 0"
-        class="
-          fixed
-          w-100
-          h-100
-          opacity-80
-          bg-purple-800
-          inset-0
-          z-50
-          flex
-          items-center
-          justify-center
-        "
-      >
-        <svg
-          class="animate-spin -ml-1 mr-3 h-12 w-12 text-white"
-          xmlns="http://www.w3.org/2000/svg"
-          fill="none"
-          viewBox="0 0 24 24"
-        >
-          <circle
-            class="opacity-25"
-            cx="12"
-            cy="12"
-            r="10"
-            stroke="currentColor"
-            stroke-width="4"
-          ></circle>
-          <path
-            class="opacity-75"
-            fill="currentColor"
-            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-          ></path>
-        </svg>
-      </div>
+      <app-loader v-if="pageStatus === 0" />
 
-      <div
-        v-else-if="pageStatus === -1"
-        class="
-          fixed
-          w-100
-          h-100
-          opacity-80
-          text-center
-          bg-purple-800
-          inset-0
-          z-50
-          flex flex-col
-          items-center
-          justify-center
-          text-white
-        "
-      >
-        <h1 class="text-2xl mx-16 mb-4">
-          Coin list fetch failed. Try reloading this page.
-        </h1>
-        <pre class="text-base block">{{ errorMessage }}</pre>
-      </div>
+      <app-error v-else-if="pageStatus === -1" :message="errorMessage" />
 
       <div v-else class="container">
         <add-ticker
@@ -207,8 +151,9 @@
                     fill-rule="evenodd"
                     d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z"
                     clip-rule="evenodd"
-                  ></path></svg
-                >Удалить
+                  ></path>
+                </svg>
+                Удалить
               </button>
             </div>
           </dl>
@@ -226,7 +171,7 @@
   </div>
 </template>
 
-<script>
+<script lang="ts">
 // [x] 6. Наличие в состоянии ЗАВИСИМЫХ ДАННЫХ | Критичность: 5+
 // [ ] 4. Запросы напрямую внутри компонента (???) | Критичность: 5
 // [x] 2. При удалении остается подписка на загрузку тикера | Критичность: 5
@@ -242,10 +187,17 @@
 // [x] График сломан если везде одинаковые значения
 // [x] При удалении тикера остается выбор
 
-import { subscribeToTicker, unsubscribeFromTicker } from './api'
+import {
+  subscribeToTicker,
+  unsubscribeFromTicker,
+  SubscriberProps,
+} from './api'
 import axios from 'axios'
+import { defineComponent } from 'vue'
 import AddTicker from './components/AddTicker.vue'
 import CryptoGraph from './components/CryptoGraph.vue'
+import AppError from './components/AppError.vue'
+import AppLoader from './components/AppLoader.vue'
 
 // const DEFAULT_COINS = [
 //   { name: "BTC" },
@@ -261,36 +213,52 @@ import CryptoGraph from './components/CryptoGraph.vue'
 
 const MAX_GRAPH_LENGTH = 80
 
-export default {
+interface Ticker {
+  name: string
+  price: number
+  intervalID?: number
+  error?: string
+}
+
+interface CryptoData {
+  FullName: string
+  Id: string
+  ImageUrl: string
+  Symbol: string
+}
+
+export default defineComponent({
   name: 'App',
 
   components: {
     AddTicker,
     CryptoGraph,
+    AppError,
+    AppLoader,
   },
 
   data() {
     return {
-      tickers: [],
-      selectedTicker: null,
-      graph: [],
+      tickers: [] as Ticker[],
+      selectedTicker: null as Ticker | null,
+      graph: [] as Array<number>,
       filter: '',
       page: 1,
-      errorMessage: null,
+      errorMessage: '',
       pageStatus: 1,
-      cryptoObject: {},
+      cryptoObject: {} as Record<string, CryptoData>,
     }
   },
 
   computed: {
-    hasNextPage() {
-      return this.filteredTickers.length > this.endIndex
-    },
-
     filteredTickers() {
       return this.tickers.filter((t) =>
         t.name.includes(this.filter.toUpperCase()),
       )
+    },
+
+    hasNextPage() {
+      return this.filteredTickers.length > this.endIndex
     },
 
     startIndex() {
@@ -359,12 +327,12 @@ export default {
       this.pageStatus = 1
     } catch (e) {
       this.pageStatus = -1
-      this.errorMessage = e.toString()
+      this.errorMessage = String(e)
     }
 
     // load tickers from localStorage
-    let list = window.localStorage.getItem('cryptonomicon-list')
-    this.tickers = JSON.parse(list) || []
+    let list = window.localStorage.getItem('cryptonomicon-list') || '[]'
+    this.tickers = JSON.parse(list)
     this.tickers.forEach((t) => {
       subscribeToTicker(t.name, this.subscribe)
     })
@@ -380,7 +348,7 @@ export default {
     filter && (this.filter = filter)
   },
   methods: {
-    getHints(ticker) {
+    getHints(ticker: string): string[] {
       const res = Object.keys(this.cryptoObject)
         .filter(
           (coin) =>
@@ -390,26 +358,31 @@ export default {
         .slice(0, 4)
       return res
     },
-    tickerExists(name) {
+    tickerExists(name: string) {
       return !!this.getTicker(name)
     },
 
-    subscribe({ name, price, error, message }) {
+    subscribe({ name, price, error, message }: SubscriberProps) {
+      const ticker = this.getTicker(name)
+      if (!ticker) {
+        return
+      }
+
       if (error) {
         console.log({ error, message })
-        this.getTicker(name).error = message
+        ticker.error = message
         this.tickers = this.tickers.slice()
         return
       }
 
-      this.getTicker(name).price = price
+      ticker.price = price
       this.tickers = this.tickers.slice()
       if (this.selectedTicker?.name === name) {
         this.graph = [...this.graph, price]
       }
     },
 
-    getTicker(name) {
+    getTicker(name: string) {
       return this.tickers.find((t) => t.name === name)
     },
 
@@ -426,18 +399,18 @@ export default {
 
       return price.toFixed(2)
     },
-    tickerIsValid(ticker) {
-      return Object.keys(this.cryptoObject).includes(ticker)
+    tickerIsValid(name: string) {
+      return Object.keys(this.cryptoObject).includes(name)
     },
 
-    add(ticker) {
-      if (!this.tickerIsValid(ticker)) {
+    add(name: string) {
+      if (!this.tickerIsValid(name)) {
         return
       }
 
       const newTicker = {
-        name: ticker,
-        price: '-',
+        name,
+        price: 0,
       }
 
       this.tickers = [...this.tickers, newTicker]
@@ -446,11 +419,11 @@ export default {
       subscribeToTicker(newTicker.name, this.subscribe)
     },
 
-    select(t) {
+    select(t: Ticker) {
       this.selectedTicker = t
     },
 
-    handleDelete(tickerToRemove) {
+    handleDelete(tickerToRemove: Ticker) {
       clearInterval(tickerToRemove.intervalID)
       this.tickers = this.tickers.filter((t) => t.name !== tickerToRemove.name)
 
@@ -462,5 +435,5 @@ export default {
       unsubscribeFromTicker(tickerToRemove.name, this.subscribe)
     },
   },
-}
+})
 </script>

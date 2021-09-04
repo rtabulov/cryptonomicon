@@ -1,8 +1,17 @@
 const API_KEY =
   '95bdf7e8c4ef1827e5f4b13d319b2ac9b409aa62feedc30f0f6553924d6ab246'
 
-let BTCPrice = null
-const tickersHandlers = new Map()
+let BTCPrice: number
+
+export interface SubscriberProps {
+  price: number
+  name: string
+  tsym: string
+  error: boolean
+  message: string
+}
+export type Subscriber = (props: SubscriberProps) => void
+const tickersHandlers = new Map<string, Subscriber[]>()
 
 const ws = new WebSocket(
   `wss://streamer.cryptocompare.com/v2?api_key=${API_KEY}`,
@@ -49,7 +58,9 @@ ws.addEventListener('message', (e) => {
       if (type === SHARED_TYPES.UPDATE) {
         const { fsym, price, tsym } = data
         const cbs = tickersHandlers.get(fsym) || []
-        cbs.forEach((cb) => cb({ name: fsym, price, tsym }))
+        cbs.forEach((cb) =>
+          cb({ name: fsym, price, tsym, error: false, message }),
+        )
       }
     })
   }
@@ -70,7 +81,7 @@ ws.addEventListener('message', (e) => {
         subscribeToTicker(
           fsym,
           ({ name, error, price, message }) => {
-            cb({ name, error, price: BTCPrice * price, message })
+            cb({ name, error, price: BTCPrice * price, message, tsym })
           },
           'BTC',
         ),
@@ -84,7 +95,9 @@ ws.addEventListener('message', (e) => {
       return
     }
 
-    cbs.forEach((cb) => cb({ name: fsym, error: true, message: info }))
+    cbs.forEach((cb) =>
+      cb({ name: fsym, error: true, message: info, tsym, price: NaN }),
+    )
     return
   }
 
@@ -94,16 +107,20 @@ ws.addEventListener('message', (e) => {
       sw.port.postMessage({ type: 'update', data: { fsym, price, tsym } })
 
       const cbs = tickersHandlers.get(fsym) || []
-      cbs.forEach((cb) => cb({ name: fsym, price, tsym }))
+      cbs.forEach((cb) =>
+        cb({ name: fsym, price, tsym, error: false, message }),
+      )
     }
   }
 })
 
-subscribeToTicker('BTC', ({ price }) => {
-  BTCPrice = price
-})
+subscribeToTicker('BTC', ({ price }) => (BTCPrice = price))
 
-export function subscribeToTicker(ticker, cb, tsym = 'USD') {
+export function subscribeToTicker(
+  ticker: string,
+  cb: Subscriber,
+  tsym = 'USD',
+): void {
   const subscribers = tickersHandlers.get(ticker) || []
   tickersHandlers.set(ticker, [...subscribers, cb])
 
@@ -115,7 +132,7 @@ export function subscribeToTicker(ticker, cb, tsym = 'USD') {
   sw.port.postMessage({ type: 'subscribe', fsym: ticker, tsym })
 }
 
-export function unsubscribeFromTicker(ticker, cb) {
+export function unsubscribeFromTicker(ticker: string, cb?: Subscriber): void {
   if (!cb && ticker !== 'BTC') {
     sendToWs({
       action: 'SubRemove',
@@ -134,19 +151,22 @@ export function unsubscribeFromTicker(ticker, cb) {
     return
   }
 
+  const existing = tickersHandlers.get(ticker) || []
   tickersHandlers.set(
     ticker,
-    tickersHandlers.get(ticker).filter((c) => c !== cb),
+    existing.filter((c) => c !== cb),
   )
 }
 
-function paramFsym(param) {
+function paramFsym(param: string) {
   return param.split('~')[2]
 }
-function paramTsym(param) {
+function paramTsym(param: string) {
   return param.split('~')[3]
 }
-function sendToWs(message) {
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function sendToWs(message: any) {
   const fn = ws.send.bind(ws, JSON.stringify(message))
 
   if (ws.readyState === WebSocket.OPEN) {

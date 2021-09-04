@@ -32,7 +32,6 @@
     >
       <div
         v-for="(bar, idx) in slicedGraph"
-        ref="graphbar"
         :key="idx"
         :style="{ height: `${bar}%`, width: `${graphbarWidth}px` }"
         class="bg-purple-800 border"
@@ -40,13 +39,14 @@
     </div>
   </section>
 </template>
-<script>
-import { debounce } from 'lodash'
 
-export default {
+<script lang="ts">
+import { defineComponent, PropType } from '@vue/runtime-core'
+
+export default defineComponent({
   props: {
     graph: {
-      type: Array,
+      type: Array as PropType<Array<number>>,
       default: () => [],
     },
     graphbarWidth: {
@@ -96,22 +96,19 @@ export default {
   },
 
   methods: {
-    calculateMaxGraphLength: debounce(
-      function () {
-        if (!this.$refs.graph) {
-          return
-        }
+    // TODO need to throttle
+    calculateMaxGraphLength() {
+      if (!this.$refs.graph) {
+        return
+      }
 
-        this.maxGraphLength = Math.ceil(
-          this.$refs.graph.clientWidth / this.graphbarWidth,
-        )
-      },
-      150,
-      { leading: true },
-    ),
+      this.maxGraphLength = Math.ceil(
+        (this.$refs.graph as HTMLElement).clientWidth / this.graphbarWidth,
+      )
+    },
     clickHandler() {
       this.$emit('close-click')
     },
   },
-}
+})
 </script>

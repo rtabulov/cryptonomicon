@@ -29,7 +29,7 @@
           />
         </div>
         <div
-          v-if="getHints && ticker.length > 0"
+          v-if="ticker.length > 0 && hints"
           class="flex bg-white shadow-md p-1 rounded-md flex-wrap"
         >
           <span
@@ -62,27 +62,26 @@
   </section>
 </template>
 
-<script>
+<script lang="ts">
+import { defineComponent, PropType } from '@vue/runtime-core'
 import AddButton from './AddButton.vue'
 
-export default {
+export default defineComponent({
   components: {
     AddButton,
   },
   props: {
     getHints: {
-      type: Function,
-      required: false,
+      type: Function as PropType<(prop: string) => string[]>,
       default: null,
     },
     checkTicker: {
-      type: Function,
-      required: false,
-      default: null,
+      type: Function as PropType<(prop: string) => boolean>,
+      default: () => true,
     },
   },
   emits: {
-    'add-ticker': function (v) {
+    'add-ticker': function (v: string): boolean {
       return typeof v === 'string' && v.length > 0
     },
   },
@@ -93,7 +92,7 @@ export default {
   },
   computed: {
     hints() {
-      return this.getHints(this.ticker)
+      return this.getHints && this.getHints(this.ticker)
     },
     tickerExists() {
       return this.checkTicker && this.checkTicker(this.ticker)
@@ -108,7 +107,7 @@ export default {
       this.$emit('add-ticker', this.ticker)
       this.ticker = ''
     },
-    hintClick(hint) {
+    hintClick(hint: string) {
       this.ticker = hint
       this.add()
     },
@@ -116,5 +115,5 @@ export default {
       this.ticker = this.ticker.toUpperCase()
     },
   },
-}
+})
 </script>
