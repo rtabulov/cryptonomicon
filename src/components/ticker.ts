@@ -20,3 +20,12 @@ export class Ticker {
     return this.price.toFixed(2)
   }
 }
+
+export interface CryptoData {
+  FullName: string
+  Id: string
+  ImageUrl: string
+  Symbol: string
+}
+
+export type CryptoObject = Record<string, CryptoData>

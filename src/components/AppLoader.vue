@@ -2,10 +2,7 @@
   <div
     class="
       fixed
-      w-100
-      h-100
-      opacity-80
-      bg-purple-800
+      bg-purple-800 bg-opacity-75
       inset-0
       z-50
       flex
