@@ -1,9 +1,12 @@
 <template>
   <div class="bg-gray-100">
     <div class="container mx-auto flex flex-col items-center p-4">
-      <app-loader v-if="pageStatus === 0" />
+      <app-loader v-if="state.pageStatus === 0" />
 
-      <app-error v-else-if="pageStatus === -1" :message="errorMessage" />
+      <app-error
+        v-else-if="state.pageStatus === -1"
+        :message="state.errorMessage"
+      />
 
       <div v-else class="container">
         <add-ticker
@@ -12,12 +15,12 @@
           @add-ticker="add"
         />
 
-        <template v-if="tickers.length">
+        <template v-if="state.tickers.length">
           <hr class="w-full border-t border-gray-600 my-4" />
           <div>
             <label>Поиск</label>
             <input
-              v-model="filter"
+              v-model="state.filter"
               type="text"
               class="
                 block
@@ -37,129 +40,41 @@
             />
 
             <div class="space-x-4 my-4">
-              <button
-                v-if="page > 1"
-                class="
-                  inline-flex
-                  items-center
-                  py-2
-                  px-4
-                  border border-transparent
-                  shadow-sm
-                  text-sm
-                  leading-4
-                  font-medium
-                  rounded-full
-                  text-white
-                  bg-gray-600
-                  hover:bg-gray-700
-                  transition-colors
-                  duration-300
-                  focus:outline-none
-                  focus:ring-2
-                  focus:ring-offset-2
-                  focus:ring-gray-500
-                "
-                @click="page -= 1"
-              >
+              <app-button v-if="state.page > 1" @click="state.page -= 1">
                 Назад
-              </button>
-              <button
-                v-if="hasNextPage"
-                class="
-                  inline-flex
-                  items-center
-                  py-2
-                  px-4
-                  border border-transparent
-                  shadow-sm
-                  text-sm
-                  leading-4
-                  font-medium
-                  rounded-full
-                  text-white
-                  bg-gray-600
-                  hover:bg-gray-700
-                  transition-colors
-                  duration-300
-                  focus:outline-none
-                  focus:ring-2
-                  focus:ring-offset-2
-                  focus:ring-gray-500
-                "
-                @click="page += 1"
-              >
+              </app-button>
+              <app-button v-if="hasNextPage" @click="state.page += 1">
                 Вперед
-              </button>
+              </app-button>
             </div>
           </div>
           <hr class="w-full border-t border-gray-600 my-4" />
           <dl class="mt-5 grid grid-cols-1 gap-5 sm:grid-cols-3 items-center">
-            <div
-              v-for="t in paginatedTickers"
-              :key="t.name"
-              class="
-                bg-white
-                overflow-hidden
-                shadow
-                rounded-lg
-                border-purple-800 border-solid
-                cursor-pointer
-              "
-              :class="{
-                'border-4': selectedTicker?.name === t.name,
-                'my-1': selectedTicker?.name !== t.name,
-                'bg-red-100': t.error,
-              }"
-              @click="select(t)"
-            >
-              <div class="px-4 py-5 sm:p-6 text-center">
-                <dt class="text-sm font-medium text-gray-500 truncate">
-                  {{ t.name }} - USD
-                </dt>
-                <dd class="mt-1 text-3xl font-semibold text-gray-900">
-                  {{ formatPrice(t.price) }}
-                </dd>
-              </div>
-              <div class="w-full border-t border-gray-200"></div>
-              <button
-                class="
-                  flex
-                  items-center
-                  justify-center
-                  font-medium
-                  w-full
-                  bg-gray-100
-                  px-4
-                  py-4
-                  sm:px-6
-                  text-md text-gray-500
-                  hover:text-gray-600 hover:bg-gray-200 hover:opacity-20
-                  transition-all
-                  focus:outline-none
-                "
-                @click.stop="handleDelete(t)"
-              >
-                <svg-icon class="h-5 w-5" name="delete" />
-                Удалить
-              </button>
-            </div>
+            <ticker-item
+              v-for="item in paginatedTickers"
+              :key="item.name"
+              :ticker="item"
+              :selected="state.selectedTicker?.name === item.name"
+              :error="Boolean(item.error)"
+              @click="select(item)"
+              @delete="onDelete"
+            />
           </dl>
           <hr class="w-full border-t border-gray-600 my-4" />
         </template>
 
         <crypto-graph
-          v-if="selectedTicker"
-          :graph="graph"
-          :heading="`${selectedTicker.name} - USD`"
-          @close-click="selectedTicker = null"
+          v-if="state.selectedTicker"
+          :graph="state.graph"
+          :heading="`${state.selectedTicker.name} - USD`"
+          @close-click="state.selectedTicker = null"
         />
       </div>
     </div>
   </div>
 </template>
 
-<script lang="ts">
+<script lang="ts" setup>
 // [x] 6. Наличие в состоянии ЗАВИСИМЫХ ДАННЫХ | Критичность: 5+
 // [ ] 4. Запросы напрямую внутри компонента (???) | Критичность: 5
 // [x] 2. При удалении остается подписка на загрузку тикера | Критичность: 5
@@ -181,28 +96,22 @@ import {
   SubscriberProps,
 } from './api'
 import axios from 'axios'
-import { defineComponent } from 'vue'
+import { computed, reactive, watch } from 'vue'
+import { Ticker } from './components/ticker'
 
-// const DEFAULT_COINS = [
-//   { name: "BTC" },
-//   { name: "ETH" },
-//   { name: "DOGE" },
-//   { name: "XPR" },
-//   { name: "ADA" },
-//   { name: "USDT" },
-//   { name: "LINK" },
-//   { name: "UNI" },
-//   { name: "DOT" }
-// ];
+const DEFAULT_COINS = [
+  new Ticker('BTC'),
+  new Ticker('ETH'),
+  new Ticker('DOGE'),
+  new Ticker('XPR'),
+  new Ticker('ADA'),
+  new Ticker('USDT'),
+  new Ticker('LINK'),
+  new Ticker('UNI'),
+  new Ticker('DOT'),
+]
 
 const MAX_GRAPH_LENGTH = 80
-
-interface Ticker {
-  name: string
-  price: number
-  intervalID?: number
-  error?: string
-}
 
 interface CryptoData {
   FullName: string
@@ -211,206 +120,195 @@ interface CryptoData {
   Symbol: string
 }
 
-export default defineComponent({
-  name: 'App',
-
-  data() {
-    return {
-      tickers: [] as Ticker[],
-      selectedTicker: null as Ticker | null,
-      graph: [] as Array<number>,
-      filter: '',
-      page: 1,
-      errorMessage: '',
-      pageStatus: 1,
-      cryptoObject: {} as Record<string, CryptoData>,
-    }
-  },
-
-  computed: {
-    filteredTickers() {
-      return this.tickers.filter((t) =>
-        t.name.includes(this.filter.toUpperCase()),
-      )
-    },
-
-    hasNextPage() {
-      return this.filteredTickers.length > this.endIndex
-    },
-
-    startIndex() {
-      let start = (this.page - 1) * 6
-      return start
-    },
-
-    endIndex() {
-      return this.page * 6
-    },
-
-    paginatedTickers() {
-      return this.filteredTickers.slice(this.startIndex, this.endIndex)
-    },
-
-    pageStateOptions() {
-      return { filter: this.filter, page: this.page }
-    },
-  },
-
-  watch: {
-    graph(v) {
-      if (v.length > MAX_GRAPH_LENGTH) {
-        this.graph = v.slice(-MAX_GRAPH_LENGTH)
-      }
-    },
-    filter() {
-      this.page = 1
-    },
-
-    pageStateOptions(value) {
-      window.history.pushState(
-        null,
-        window.document.title,
-        `${window.location.pathname}?page=${value.page}&filter=${value.filter}`,
-      )
-    },
-
-    selectedTicker() {
-      this.graph = []
-    },
-
-    tickers(value) {
-      // sync to localstorage
-      localStorage.setItem('cryptonomicon-list', JSON.stringify(value))
-    },
-
-    paginatedTickers(newtickers) {
-      if (newtickers.length == 0 && this.page > 1) {
-        this.page -= 1
-      }
-    },
-  },
-
-  async created() {
-    // load coin list
-    try {
-      let response = await axios.get(
-        'https://min-api.cryptocompare.com/data/all/coinlist?summary=true',
-        {
-          timeout: 5000,
-        },
-      )
-      this.cryptoObject = response.data.Data
-
-      this.pageStatus = 1
-    } catch (e) {
-      this.pageStatus = -1
-      this.errorMessage = String(e)
-    }
-
-    // load tickers from localStorage
-    let list = window.localStorage.getItem('cryptonomicon-list') || '[]'
-    this.tickers = JSON.parse(list)
-    this.tickers.forEach((t) => {
-      subscribeToTicker(t.name, this.subscribe)
-    })
-    if (this.tickers.length > 0) {
-      this.select(this.tickers[0])
-    }
-
-    // load filter and page
-    let { filter, page } = Object.fromEntries(
-      new URLSearchParams(window.location.search).entries(),
-    )
-    page && (this.page = +page)
-    filter && (this.filter = filter)
-  },
-  methods: {
-    getHints(ticker: string): string[] {
-      const res = Object.keys(this.cryptoObject)
-        .filter(
-          (coin) =>
-            coin.includes(ticker) ||
-            this.cryptoObject[coin].FullName.toUpperCase().includes(ticker),
-        )
-        .slice(0, 4)
-      return res
-    },
-    tickerExists(name: string) {
-      return !!this.getTicker(name)
-    },
-
-    subscribe({ name, price, error, message }: SubscriberProps) {
-      const ticker = this.getTicker(name)
-      if (!ticker) {
-        return
-      }
-
-      if (error) {
-        console.log({ error, message })
-        ticker.error = message
-        this.tickers = this.tickers.slice()
-        return
-      }
-
-      ticker.price = price
-      this.tickers = this.tickers.slice()
-      if (this.selectedTicker?.name === name) {
-        this.graph = [...this.graph, price]
-      }
-    },
-
-    getTicker(name: string) {
-      return this.tickers.find((t) => t.name === name)
-    },
-
-    formatPrice(price = 0) {
-      if (typeof price !== 'number') {
-        return price
-      }
-
-      price = Number(price)
-
-      if (price < 1) {
-        return price.toPrecision(3)
-      }
-
-      return price.toFixed(2)
-    },
-    tickerIsValid(name: string) {
-      return Object.keys(this.cryptoObject).includes(name)
-    },
-
-    add(name: string) {
-      if (!this.tickerIsValid(name)) {
-        return
-      }
-
-      const newTicker = {
-        name,
-        price: 0,
-      }
-
-      this.tickers = [...this.tickers, newTicker]
-      this.filter = ''
-
-      subscribeToTicker(newTicker.name, this.subscribe)
-    },
-
-    select(t: Ticker) {
-      this.selectedTicker = t
-    },
-
-    handleDelete(tickerToRemove: Ticker) {
-      clearInterval(tickerToRemove.intervalID)
-      this.tickers = this.tickers.filter((t) => t.name !== tickerToRemove.name)
-
-      // remove selected if it was deleted
-      if (tickerToRemove.name === this.selectedTicker?.name) {
-        this.selectedTicker = null
-      }
-
-      unsubscribeFromTicker(tickerToRemove.name, this.subscribe)
-    },
-  },
+interface State {
+  tickers: Ticker[]
+  selectedTicker: Ticker | null
+  graph: Array<number>
+  filter: string
+  page: number
+  errorMessage: string
+  pageStatus: number
+  cryptoObject: Record<string, CryptoData>
+}
+const state = reactive<State>({
+  tickers: [],
+  selectedTicker: null,
+  graph: [],
+  filter: '',
+  page: 1,
+  errorMessage: '',
+  pageStatus: 1,
+  cryptoObject: {},
 })
+
+const filteredTickers = computed(() =>
+  state.tickers.filter((t) => t.name.includes(state.filter.toUpperCase())),
+)
+
+const startIndex = computed(() => (state.page - 1) * 6)
+
+const endIndex = computed(() => state.page * 6)
+
+const hasNextPage = computed(
+  () => filteredTickers.value.length > endIndex.value,
+)
+
+const paginatedTickers = computed(() =>
+  filteredTickers.value.slice(startIndex.value, endIndex.value),
+)
+
+const pageStateOptions = computed(() => ({
+  filter: state.filter,
+  page: state.page,
+}))
+
+watch(
+  () => state.graph,
+  (value) => {
+    if (value.length > MAX_GRAPH_LENGTH) {
+      state.graph = value.slice(-MAX_GRAPH_LENGTH)
+    }
+  },
+)
+watch(
+  () => state.filter,
+  () => {
+    state.page = 1
+  },
+)
+watch(pageStateOptions, (value) => {
+  window.history.pushState(
+    null,
+    window.document.title,
+    `${window.location.pathname}?page=${value.page}&filter=${value.filter}`,
+  )
+})
+
+watch(
+  () => state.selectedTicker,
+  () => {
+    state.graph = []
+  },
+)
+
+watch(
+  () => state.tickers,
+  (value) => {
+    localStorage.setItem('cryptonomicon-list', JSON.stringify(value))
+  },
+)
+
+watch(paginatedTickers, (value) => {
+  if (value.length == 0 && state.page > 1) {
+    state.page -= 1
+  }
+})
+;(async () => {
+  // load coin list
+  try {
+    let response = await axios.get(
+      'https://min-api.cryptocompare.com/data/all/coinlist?summary=true',
+      {
+        timeout: 5000,
+      },
+    )
+    state.cryptoObject = response.data.Data
+
+    state.pageStatus = 1
+  } catch (e) {
+    state.pageStatus = -1
+    state.errorMessage = String(e)
+  }
+
+  // load tickers from localStorage
+  let list =
+    window.localStorage.getItem('cryptonomicon-list') ||
+    JSON.stringify(DEFAULT_COINS)
+  state.tickers = JSON.parse(list).map(
+    ({ name, price }: { name: string; price: number }) =>
+      new Ticker(name, price),
+  )
+  state.tickers.forEach((t) => {
+    subscribeToTicker(t.name, subscribe)
+  })
+  if (state.tickers.length > 0) {
+    select(state.tickers[0])
+  }
+
+  // load filter and page
+  let { filter, page } = Object.fromEntries(
+    new URLSearchParams(window.location.search).entries(),
+  )
+  page && (state.page = +page)
+  filter && (state.filter = filter)
+})()
+
+function getHints(ticker: string): string[] {
+  const res = Object.keys(state.cryptoObject)
+    .filter(
+      (coin) =>
+        coin.includes(ticker) ||
+        state.cryptoObject[coin].FullName.toUpperCase().includes(ticker),
+    )
+    .slice(0, 4)
+  return res
+}
+function tickerExists(name: string) {
+  return Boolean(getTicker(name))
+}
+
+function subscribe({ name, price, error, message }: SubscriberProps) {
+  const ticker = getTicker(name)
+  if (!ticker) {
+    return
+  }
+
+  if (error) {
+    console.log({ error, message })
+    ticker.error = message
+    return
+  }
+
+  ticker.price = price
+  if (state.selectedTicker?.name === name) {
+    state.graph = [...state.graph, price]
+  }
+}
+
+function getTicker(name: string) {
+  return state.tickers.find((t) => t.name === name)
+}
+
+function tickerIsValid(name: string) {
+  return Object.keys(state.cryptoObject).includes(name)
+}
+
+function add(name: string) {
+  if (!tickerIsValid(name) || getTicker(name)) {
+    return
+  }
+
+  const newTicker = new Ticker(name, 0)
+
+  state.tickers = [...state.tickers, newTicker]
+  state.filter = ''
+
+  subscribeToTicker(newTicker.name, subscribe)
+}
+
+function select(t: Ticker) {
+  state.selectedTicker = t
+}
+
+function onDelete(tickerToRemove: Ticker) {
+  clearInterval(tickerToRemove.intervalID)
+  state.tickers = state.tickers.filter((t) => t.name !== tickerToRemove.name)
+
+  // remove selected if it was deleted
+  if (tickerToRemove.name === state.selectedTicker?.name) {
+    state.selectedTicker = null
+  }
+
+  unsubscribeFromTicker(tickerToRemove.name, subscribe)
+}
 </script>

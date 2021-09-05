@@ -2,7 +2,6 @@
   <button
     type="button"
     class="
-      my-4
       inline-flex
       items-center
       py-2
@@ -21,7 +20,6 @@
       focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500
     "
   >
-    <svg-icon class="-ml-0.5 mr-2 h-6 w-6" name="add" />
-    Добавить
+    <slot></slot>
   </button>
 </template>

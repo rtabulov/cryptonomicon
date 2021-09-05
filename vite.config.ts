@@ -11,7 +11,7 @@ export default defineConfig({
   plugins: [
     vue(),
     WindiCSS(),
-    eslint(),
+    eslint({ cache: false }),
     Components(),
     viteSvgIcons({
       iconDirs: [path.resolve(process.cwd(), 'src/icons')],

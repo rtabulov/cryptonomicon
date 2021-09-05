@@ -25,7 +25,6 @@
             "
             placeholder="Например DOGE"
             @keydown.enter="add"
-            @input="handleInput"
           />
         </div>
         <div
@@ -58,58 +57,46 @@
       </div>
     </div>
 
-    <add-button @click="add" />
+    <app-button class="my-4" @click="add">
+      <svg-icon class="-ml-0.5 mr-2 h-6 w-6" name="add" />
+      Добавить
+    </app-button>
   </section>
 </template>
 
-<script lang="ts">
-import { defineComponent, PropType } from 'vue'
+<script lang="ts" setup>
+import { computed, PropType, ref, watch } from 'vue'
 
-export default defineComponent({
-  props: {
-    getHints: {
-      type: Function as PropType<(prop: string) => string[]>,
-      default: null,
-    },
-    checkTicker: {
-      type: Function as PropType<(prop: string) => boolean>,
-      default: () => true,
-    },
+const props = defineProps({
+  getHints: {
+    type: Function as PropType<(prop: string) => string[]>,
+    default: null,
   },
-  emits: {
-    'add-ticker': function (v: string): boolean {
-      return typeof v === 'string' && v.length > 0
-    },
-  },
-  data() {
-    return {
-      ticker: '',
-    }
-  },
-  computed: {
-    hints() {
-      return this.getHints && this.getHints(this.ticker)
-    },
-    tickerExists() {
-      return this.checkTicker && this.checkTicker(this.ticker)
-    },
-  },
-  methods: {
-    add() {
-      if (this.ticker.length === 0) {
-        return
-      }
-
-      this.$emit('add-ticker', this.ticker)
-      this.ticker = ''
-    },
-    hintClick(hint: string) {
-      this.ticker = hint
-      this.add()
-    },
-    handleInput() {
-      this.ticker = this.ticker.toUpperCase()
-    },
+  checkTicker: {
+    type: Function as PropType<(prop: string) => boolean>,
+    default: () => true,
   },
 })
+const emit = defineEmits({ addTicker: String })
+
+const ticker = ref('')
+watch(ticker, (value) => (ticker.value = value.toUpperCase()))
+
+//   computed: {
+const hints = computed(() => props.getHints && props.getHints(ticker.value))
+const tickerExists = computed(
+  () => props.checkTicker && props.checkTicker(ticker.value),
+)
+function add() {
+  if (ticker.value.length === 0) {
+    return
+  }
+
+  emit('addTicker', ticker.value)
+  ticker.value = ''
+}
+function hintClick(hint: string) {
+  ticker.value = hint
+  add()
+}
 </script>
