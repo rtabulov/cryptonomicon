@@ -1,22 +1,22 @@
 <template>
   <div class="container">
-    <add-ticker
+    <ticker-add
       :get-hints="getHints"
       :check-ticker="tickerExists"
-      @add-ticker="add"
+      @add-ticker="addTicker"
     />
 
-    <template v-if="state.tickers.length">
+    <template v-if="tickers.length">
       <hr class="w-full border-t border-gray-400 my-8" />
 
       <tickers-search @change="onFilterChange" />
 
       <tickers-pagination
         class="space-x-4 my-4"
-        :show-prev="state.page > 1"
+        :show-prev="page > 1"
         :show-next="hasNextPage"
-        @prev="state.page -= 1"
-        @next="state.page += 1"
+        @prev="page -= 1"
+        @next="page += 1"
       />
 
       <hr class="w-full border-t border-gray-400 my-8" />
@@ -26,20 +26,20 @@
           v-for="item in paginatedTickers"
           :key="item.name"
           :ticker="item"
-          :selected="state.selectedTicker?.name === item.name"
+          :selected="selectedTicker?.name === item.name"
           :error="Boolean(item.error)"
           @click="select(item)"
-          @delete="onDelete"
+          @delete="removeTicker"
         />
       </dl>
       <hr class="w-full border-t border-gray-600 my-4" />
     </template>
 
     <crypto-graph
-      v-if="state.selectedTicker"
-      :graph="state.graph"
-      :heading="`${state.selectedTicker.name} - USD`"
-      @close-click="state.selectedTicker = null"
+      v-if="selectedTicker"
+      :graph="graph"
+      :heading="`${selectedTicker.name} - USD`"
+      @close-click="selectedTicker = null"
     />
   </div>
 </template>
@@ -59,85 +59,40 @@
 // Параллельно
 // [x] График сломан если везде одинаковые значения
 // [x] При удалении тикера остается выбор
-
-import {
-  subscribeToTicker,
-  unsubscribeFromTicker,
-  SubscriberProps,
-} from '../api'
-import { computed, reactive, watch } from 'vue'
+import { computed, watch } from 'vue'
 import { Ticker } from '@/components/ticker'
 import { useStore } from '@/store/store'
-
-const DEFAULT_COINS = [
-  new Ticker('BTC'),
-  new Ticker('ETH'),
-  new Ticker('DOGE'),
-  new Ticker('XPR'),
-  new Ticker('ADA'),
-  new Ticker('USDT'),
-  new Ticker('LINK'),
-  new Ticker('UNI'),
-  new Ticker('DOT'),
-]
-
-const MAX_GRAPH_LENGTH = 80
+import useTickers from '@/composables/useTickers'
+import {
+  SubscriberProps,
+  subscribeToTicker,
+  unsubscribeFromTicker,
+} from '@/api'
+import useGraph from '@/composables/useGraph'
 
 const store = useStore()
 
 await store.loadCryptoObject()
 const { cryptoObject } = store
 
-interface State {
-  tickers: Ticker[]
-  selectedTicker: Ticker | null
-  graph: Array<number>
-  filter: string
-  page: number
-}
-const state = reactive<State>({
-  tickers: [],
-  selectedTicker: null,
-  graph: [],
-  filter: '',
-  page: 1,
-})
+const { graph } = useGraph()
 
-const filteredTickers = computed(() =>
-  state.tickers.filter((t) => t.name.includes(state.filter.toUpperCase())),
-)
-
-const startIndex = computed(() => (state.page - 1) * 6)
-
-const endIndex = computed(() => state.page * 6)
-
-const hasNextPage = computed(
-  () => filteredTickers.value.length > endIndex.value,
-)
-
-const paginatedTickers = computed(() =>
-  filteredTickers.value.slice(startIndex.value, endIndex.value),
-)
+const {
+  tickers,
+  selectedTicker,
+  filter,
+  paginatedTickers,
+  page,
+  hasNextPage,
+  tickerExists,
+  getTicker,
+} = useTickers()
 
 const pageStateOptions = computed(() => ({
-  filter: state.filter,
-  page: state.page,
+  filter: filter.value,
+  page: page.value,
 }))
 
-watch(
-  () => state.graph,
-  (value) => {
-    if (value.length > MAX_GRAPH_LENGTH) {
-      state.graph = value.slice(-MAX_GRAPH_LENGTH)
-    }
-  },
-)
-watch(
-  () => state.filter,
-  () => {
-    state.page = 1
-  },
-)
 watch(pageStateOptions, (value) => {
   window.history.pushState(
     null,
@@ -146,63 +101,24 @@ watch(pageStateOptions, (value) => {
   )
 })
 
-watch(
-  () => state.selectedTicker,
-  () => {
-    state.graph = []
-  },
-)
-
-watch(
-  () => state.tickers,
-  (value) => {
-    localStorage.setItem('cryptonomicon-list', JSON.stringify(value))
-  },
-)
-
-watch(paginatedTickers, (value) => {
-  if (value.length == 0 && state.page > 1) {
-    state.page -= 1
-  }
+watch(selectedTicker, () => {
+  graph.value = []
 })
-;(async () => {
-  // load tickers from localStorage
-  let list =
-    window.localStorage.getItem('cryptonomicon-list') ||
-    JSON.stringify(DEFAULT_COINS)
-  state.tickers = JSON.parse(list).map(
-    ({ name, price }: { name: string; price: number }) =>
-      new Ticker(name, price),
-  )
-  state.tickers.forEach((t) => {
-    subscribeToTicker(t.name, subscribe)
-  })
-  if (state.tickers.length > 0) {
-    select(state.tickers[0])
-  }
 
-  // load filter and page
-  let { filter, page } = Object.fromEntries(
-    new URLSearchParams(window.location.search).entries(),
-  )
-  page && (state.page = +page)
-  filter && (state.filter = filter)
-})()
+tickers.value.forEach((t) => {
+  subscribeToTicker(t.name, subscribe)
+})
 
-function getHints(ticker: string): string[] {
-  const res = Object.keys(cryptoObject)
-    .filter(
-      (coin) =>
-        coin.includes(ticker) ||
-        cryptoObject[coin].FullName.toUpperCase().includes(ticker),
-    )
-    .slice(0, 4)
-  return res
+if (tickers.value.length > 0) {
+  select(tickers.value[0])
 }
 
-function tickerExists(name: string) {
-  return Boolean(getTicker(name))
-}
+// load filter and page
+let { filter: filterParam, page: pageParam } = Object.fromEntries(
+  new URLSearchParams(window.location.search).entries(),
+)
+pageParam && (page.value = +pageParam)
+filterParam && (filter.value = filterParam)
 
 function subscribe({ name, price, error, message }: SubscriberProps) {
   const ticker = getTicker(name)
@@ -217,47 +133,53 @@ function subscribe({ name, price, error, message }: SubscriberProps) {
   }
 
   ticker.price = price
-  if (state.selectedTicker?.name === name) {
-    state.graph = [...state.graph, price]
+  if (selectedTicker.value?.name === name) {
+    graph.value.push(price)
   }
-}
-
-function getTicker(name: string) {
-  return state.tickers.find((t) => t.name === name)
 }
 
 function tickerIsValid(name: string) {
   return Object.keys(cryptoObject).includes(name)
 }
 
-function add(name: string) {
+function addTicker(name: string) {
   if (!tickerIsValid(name) || getTicker(name)) {
     return
   }
 
-  const newTicker = new Ticker(name, 0)
+  const newTicker = { name, price: 0 }
 
-  state.tickers = [...state.tickers, newTicker]
-  state.filter = ''
+  tickers.value = [...tickers.value, newTicker]
+  filter.value = ''
 
   subscribeToTicker(newTicker.name, subscribe)
 }
 
-function select(t: Ticker) {
-  state.selectedTicker = t
-}
-
-function onDelete(tickerToRemove: Ticker) {
-  clearInterval(tickerToRemove.intervalID)
-  state.tickers = state.tickers.filter((t) => t.name !== tickerToRemove.name)
+function removeTicker(tickerToRemove: Ticker) {
+  tickers.value = tickers.value.filter((t) => t.name !== tickerToRemove.name)
 
   // remove selected if it was deleted
-  if (tickerToRemove.name === state.selectedTicker?.name) {
-    state.selectedTicker = null
+  if (tickerToRemove.name === selectedTicker.value?.name) {
+    selectedTicker.value = null
   }
 
   unsubscribeFromTicker(tickerToRemove.name, subscribe)
 }
 
-const onFilterChange = (val: string) => (state.filter = val)
+function getHints(ticker: string): string[] {
+  const res = Object.keys(cryptoObject)
+    .filter(
+      (coin) =>
+        coin.includes(ticker) ||
+        cryptoObject[coin].FullName.toUpperCase().includes(ticker),
+    )
+    .slice(0, 4)
+  return res
+}
+
+function select(t: Ticker) {
+  selectedTicker.value = t
+}
+
+const onFilterChange = (val: string) => (filter.value = val)
 </script>

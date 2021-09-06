@@ -53,7 +53,7 @@
 </template>
 
 <script lang="ts" setup>
-import { computed, PropType, ref, watch, watchEffect } from 'vue'
+import { computed, PropType, ref, watch } from 'vue'
 
 const props = defineProps({
   getHints: {

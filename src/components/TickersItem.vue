@@ -18,7 +18,7 @@
         {{ ticker.name }} - USD
       </dt>
       <dd class="mt-1 text-3xl font-semibold text-gray-900">
-        {{ ticker.formatPrice() }}
+        {{ formattedPrice }}
       </dd>
     </div>
     <div class="w-full border-t border-gray-200"></div>
@@ -46,6 +46,7 @@
   </div>
 </template>
 <script lang="ts" setup>
+import { computed } from 'vue-demi'
 import { Ticker } from './ticker'
 
 interface Props {
@@ -53,6 +54,19 @@ interface Props {
   error?: boolean
   ticker: Ticker
 }
-withDefaults(defineProps<Props>(), { selected: false, error: false })
+const props = withDefaults(defineProps<Props>(), {
+  selected: false,
+  error: false,
+})
 defineEmits<{ (e: 'delete', ticker: Ticker): void }>()
+const formattedPrice = computed(() => {
+  if (props.ticker.price === 0) {
+    return '-'
+  }
+
+  if (props.ticker.price < 1) {
+    return props.ticker.price.toPrecision(3)
+  }
+  return props.ticker.price.toFixed(2)
+})
 </script>
