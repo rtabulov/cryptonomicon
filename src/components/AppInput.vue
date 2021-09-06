@@ -13,5 +13,14 @@
       sm:text-sm
       rounded-md
     "
+    :value="modelValue"
+    @input="onInput"
   />
 </template>
+<script lang="ts" setup>
+defineProps<{ modelValue?: string }>()
+const emit = defineEmits<{ (e: 'update:modelValue', value: string): void }>()
+const onInput = (e: Event) => {
+  emit('update:modelValue', (e.target as HTMLInputElement).value)
+}
+</script>

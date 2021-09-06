@@ -11,7 +11,7 @@
       class="flex items-end border-gray-600 border-b border-l h-64"
     >
       <div
-        v-for="(bar, idx) in slicedGraph"
+        v-for="(bar, idx) in normalizedGraph"
         :key="idx"
         :style="{ height: `${bar}%`, width: `${graphbarWidth}px` }"
         class="bg-purple-800 border"
@@ -21,6 +21,7 @@
 </template>
 
 <script lang="ts" setup>
+import { throttle } from 'lodash'
 import { computed, onBeforeUnmount, onMounted, PropType, Ref, ref } from 'vue'
 
 const props = defineProps({
@@ -43,19 +44,16 @@ const emit = defineEmits({ close: null })
 const graphRef: Ref<HTMLElement | null> = ref(null)
 const maxGraphLength = ref(1)
 
-//   computed: {
+const slicedGraph = computed(() => props.graph.slice(-maxGraphLength.value))
+
 const normalizedGraph = computed(() => {
-  const maxValue = Math.max(...props.graph)
-  const minValue = Math.min(...props.graph)
-  if (minValue === maxValue) return new Array(props.graph.length).fill(50)
-  return props.graph.map(
+  const maxValue = Math.max(...slicedGraph.value)
+  const minValue = Math.min(...slicedGraph.value)
+  if (minValue === maxValue) return new Array(slicedGraph.value.length).fill(50)
+  return slicedGraph.value.map(
     (price) => 5 + ((price - minValue) * 95) / (maxValue - minValue),
   )
 })
-
-const slicedGraph = computed(() =>
-  normalizedGraph.value.slice(-maxGraphLength.value),
-)
 
 onMounted(() => {
   calculateMaxGraphLength()
@@ -66,7 +64,7 @@ onBeforeUnmount(() => {
 })
 
 // TODO need to throttle
-function calculateMaxGraphLength() {
+const calculateMaxGraphLength = throttle(() => {
   if (!graphRef.value) {
     return
   }
@@ -74,7 +72,7 @@ function calculateMaxGraphLength() {
   maxGraphLength.value = Math.ceil(
     graphRef.value.clientWidth / props.graphbarWidth,
   )
-}
+}, 300)
 
 function onRef(el: unknown) {
   graphRef.value = el as HTMLElement

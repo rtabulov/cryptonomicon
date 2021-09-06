@@ -8,12 +8,11 @@
         <div class="mt-1 relative rounded-md shadow-md">
           <app-input
             id="wallet"
-            :value="ticker"
+            v-model="ticker"
             type="text"
             name="wallet"
             placeholder="Например DOGE"
             @keydown.enter="add"
-            @input="onInput"
           />
         </div>
         <div
@@ -54,7 +53,7 @@
 </template>
 
 <script lang="ts" setup>
-import { computed, PropType, ref, watch } from 'vue'
+import { computed, PropType, ref, watch, watchEffect } from 'vue'
 
 const props = defineProps({
   getHints: {
@@ -89,8 +88,5 @@ function add() {
 function hintClick(hint: string) {
   ticker.value = hint
   add()
-}
-function onInput(e: Event) {
-  ticker.value = (e.target as HTMLInputElement).value
 }
 </script>

@@ -1,16 +1,24 @@
 <template>
-  <app-loader v-if="state.pageStatus === 0" />
-
-  <div class="bg-gray-100">
-    <div class="container mx-auto flex flex-col items-center py-4">
-      <app-error v-if="state.pageStatus === -1" :message="state.errorMessage" />
-
-      <tickers-page
-        v-if="state.pageStatus === 1"
-        :crypto-object="state.cryptoObject"
-      />
+  <div v-if="error">
+    <div class="bg-gray-100">
+      <div class="container mx-auto flex flex-col items-center py-4">
+        <app-error :message="error.toString()" />
+      </div>
     </div>
   </div>
+
+  <suspense>
+    <template #default>
+      <div class="bg-gray-100">
+        <div class="container mx-auto flex flex-col items-center py-4">
+          <tickers-page />
+        </div>
+      </div>
+    </template>
+    <template #fallback>
+      <app-loader />
+    </template>
+  </suspense>
 </template>
 
 <script lang="ts" setup>
@@ -28,34 +36,14 @@
 // Параллельно
 // [x] График сломан если везде одинаковые значения
 // [x] При удалении тикера остается выбор
-import axios from 'axios'
-import { reactive } from 'vue'
-import { CryptoObject } from './components/ticker'
 
-interface State {
-  errorMessage: string
-  pageStatus: number
-  cryptoObject: CryptoObject
-}
-const state = reactive<State>({
-  errorMessage: '',
-  pageStatus: 0,
-  cryptoObject: {},
+import TickersPage from './pages/TickersPage.vue'
+
+import { onErrorCaptured, Ref, ref } from 'vue'
+
+const error: Ref<Error | null> = ref(null)
+onErrorCaptured((e) => {
+  error.value = e
+  return true
 })
-
-async function bootstrap() {
-  try {
-    let response = await axios.get(
-      'https://min-api.cryptocompare.com/data/all/coinlist?summary=true',
-      { timeout: 5000 },
-    )
-    state.cryptoObject = response.data.Data
-    state.pageStatus = 1
-  } catch (e) {
-    state.pageStatus = -1
-    state.errorMessage = String(e)
-  }
-}
-
-bootstrap()
 </script>

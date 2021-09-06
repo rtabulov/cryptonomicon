@@ -4,17 +4,19 @@ import WindiCSS from 'vite-plugin-windicss'
 import eslint from 'vite-plugin-eslint'
 import Components from 'unplugin-vue-components/vite'
 import viteSvgIcons from 'vite-plugin-svg-icons'
+import Pages from 'vite-plugin-pages'
 
 import path from 'path'
 
 export default defineConfig({
   plugins: [
     vue(),
+    Pages(),
     WindiCSS(),
     eslint({ cache: false }),
     Components(),
     viteSvgIcons({
-      iconDirs: [path.resolve(process.cwd(), 'src/icons')],
+      iconDirs: [path.resolve(process.cwd(), 'src/assets/icons')],
       symbolId: 'icon-[dir]-[name]',
     }),
   ],

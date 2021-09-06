@@ -74,7 +74,8 @@ import {
   SubscriberProps,
 } from '../api'
 import { computed, reactive, watch } from 'vue'
-import { CryptoObject, Ticker } from './ticker'
+import { Ticker } from '@/components/ticker'
+import { useStore } from '@/store/store'
 
 const DEFAULT_COINS = [
   new Ticker('BTC'),
@@ -90,7 +91,10 @@ const DEFAULT_COINS = [
 
 const MAX_GRAPH_LENGTH = 80
 
-const props = defineProps<{ cryptoObject: CryptoObject }>()
+const store = useStore()
+
+await store.loadCryptoObject()
+const { cryptoObject } = store
 
 interface State {
   tickers: Ticker[]
@@ -194,11 +198,11 @@ watch(paginatedTickers, (value) => {
 })()
 
 function getHints(ticker: string): string[] {
-  const res = Object.keys(props.cryptoObject)
+  const res = Object.keys(cryptoObject)
     .filter(
       (coin) =>
         coin.includes(ticker) ||
-        props.cryptoObject[coin].FullName.toUpperCase().includes(ticker),
+        cryptoObject[coin].FullName.toUpperCase().includes(ticker),
     )
     .slice(0, 4)
   return res
@@ -231,7 +235,7 @@ function getTicker(name: string) {
 }
 
 function tickerIsValid(name: string) {
-  return Object.keys(props.cryptoObject).includes(name)
+  return Object.keys(cryptoObject).includes(name)
 }
 
 function add(name: string) {
