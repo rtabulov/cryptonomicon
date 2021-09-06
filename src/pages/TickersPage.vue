@@ -7,30 +7,22 @@
     />
 
     <template v-if="state.tickers.length">
-      <hr class="w-full border-t border-gray-600 my-4" />
-      <div>
-        <label>Поиск</label>
-        <app-input
-          :value="state.filter"
-          type="text"
-          class="mt-2"
-          placeholder="например DOGE"
-          @input="onInput"
-        />
+      <hr class="w-full border-t border-gray-400 my-8" />
 
-        <div class="space-x-4 my-4">
-          <app-button v-if="state.page > 1" @click="state.page -= 1">
-            Назад
-          </app-button>
-          <app-button v-if="hasNextPage" @click="state.page += 1">
-            Вперед
-          </app-button>
-        </div>
-      </div>
-      <hr class="w-full border-t border-gray-600 my-4" />
+      <tickers-search @change="onFilterChange" />
+
+      <tickers-pagination
+        class="space-x-4 my-4"
+        :show-prev="state.page > 1"
+        :show-next="hasNextPage"
+        @prev="state.page -= 1"
+        @next="state.page += 1"
+      />
+
+      <hr class="w-full border-t border-gray-400 my-8" />
 
       <dl class="mt-5 grid grid-cols-1 gap-5 sm:grid-cols-3 items-center">
-        <ticker-item
+        <tickers-item
           v-for="item in paginatedTickers"
           :key="item.name"
           :ticker="item"
@@ -267,7 +259,5 @@ function onDelete(tickerToRemove: Ticker) {
   unsubscribeFromTicker(tickerToRemove.name, subscribe)
 }
 
-function onInput(e: Event) {
-  state.filter = (e.target as HTMLInputElement).value
-}
+const onFilterChange = (val: string) => (state.filter = val)
 </script>

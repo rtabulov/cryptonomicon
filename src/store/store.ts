@@ -5,6 +5,7 @@ import axios from 'axios'
 export const useStore = defineStore('global', {
   state: () => ({
     cryptoObject: {} as CryptoObject,
+    BTCvalue: 0,
   }),
 
   actions: {

@@ -45,7 +45,7 @@
       </div>
     </div>
 
-    <app-button class="my-4" @click="add">
+    <app-button class="mt-4" @click="add">
       <svg-icon class="-ml-0.5 mr-2 h-6 w-6" name="add" />
       Добавить
     </app-button>
