@@ -3,31 +3,38 @@ import { Ref, ref, unref, watch } from 'vue'
 export type MaybeRef<T> = Ref<T> | T
 
 export default function useLocalStorage<T>(
+  data: Ref<T>,
   key: MaybeRef<string>,
-): Ref<T | null> {
-  const returnedRef = getFromLocalStorage<T>(key)
+): Ref<T> {
+  const lsValue = getFromLocalStorage<T>(key)
+  if (lsValue) {
+    data.value = lsValue
+  }
 
   watch(ref(key), () => {
-    returnedRef.value = unref(getFromLocalStorage<T>(key))
+    const lsValue = getFromLocalStorage<T>(key)
+    if (lsValue) {
+      data.value = lsValue
+    }
   })
 
   watch(
-    returnedRef,
+    data,
     (value) => {
       localStorage.setItem(unref(key), JSON.stringify(value))
     },
     { deep: true },
   )
 
-  return returnedRef
+  return data
 }
 
-function getFromLocalStorage<T>(key: MaybeRef<string>): Ref<T | null> {
+function getFromLocalStorage<T>(key: MaybeRef<string>): T | null {
   const localStorageValue = localStorage.getItem(unref(key))
 
   if (localStorageValue) {
-    return ref(JSON.parse(localStorageValue))
+    return JSON.parse(localStorageValue)
   }
 
-  return ref(null)
+  return null
 }

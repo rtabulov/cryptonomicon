@@ -1,5 +1,4 @@
-import { watch } from 'vue'
-import useDefault from './useDeafult'
+import { watch, ref } from 'vue'
 import useLocalStorage from './useLocalStorage'
 import useFilter from './useFilter'
 import usePagination from './usePagination'
@@ -19,10 +18,9 @@ const DEFAULT_COINS: Ticker[] = [
 
 // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
 export default function useTickers() {
-  const tickers = useDefault<Ticker[]>(
-    useLocalStorage('cryptonomicon-list'),
-    DEFAULT_COINS,
-  )
+  const tickers = ref(DEFAULT_COINS)
+
+  useLocalStorage(tickers, 'cryptonomicon-list')
 
   const filterFunc = (t: Ticker): boolean =>
     t.name.includes(filter.value.toUpperCase())
