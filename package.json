@@ -5,7 +5,7 @@
   "private": true,
   "scripts": {
     "dev": "vite",
-    "serve": "vite preview",
+    "serve": "vite preview --base /cryptonomicon/",
     "build": "vite build",
     "lint": "eslint src",
     "predeploy": "yarn build",

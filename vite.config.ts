@@ -9,6 +9,7 @@ import Pages from 'vite-plugin-pages'
 import path from 'path'
 
 export default defineConfig({
+  base: process.env.NODE_ENV === 'production' ? '/cryptonomicon/' : '/',
   plugins: [
     vue(),
     Pages(),
