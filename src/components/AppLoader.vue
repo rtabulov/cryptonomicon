@@ -11,7 +11,7 @@
     "
   >
     <svg-icon
-      class="animate-spin -ml-1 mr-3 h-12 w-12 text-white"
+      class="animate-spin -ml-1 mr-3 h-15 w-15 text-white"
       name="loader"
     />
   </div>
