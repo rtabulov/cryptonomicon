@@ -1,4 +1,4 @@
-import { Ref, ref, watch } from 'vue'
+import { watch } from 'vue'
 import useDefault from './useDeafult'
 import useLocalStorage from './useLocalStorage'
 import useFilter from './useFilter'
@@ -23,7 +23,6 @@ export default function useTickers() {
     useLocalStorage('cryptonomicon-list'),
     DEFAULT_COINS,
   )
-  const selectedTicker: Ref<Ticker | null> = ref(null)
 
   const filterFunc = (t: Ticker): boolean =>
     t.name.includes(filter.value.toUpperCase())
@@ -55,7 +54,6 @@ export default function useTickers() {
   return {
     tickers,
     filteredTickers,
-    selectedTicker,
     filter,
     page,
     hasNextPage,

@@ -24,6 +24,7 @@
 import { throttle } from 'lodash'
 import { computed, onBeforeUnmount, onMounted, PropType, Ref, ref } from 'vue'
 
+// TODO finish graph module
 const props = defineProps({
   graph: {
     type: Array as PropType<Array<number>>,
@@ -41,7 +42,7 @@ const props = defineProps({
 
 const emit = defineEmits({ close: null })
 
-const graphRef: Ref<HTMLElement | null> = ref(null)
+const graphElement: Ref<HTMLElement | null> = ref(null)
 const maxGraphLength = ref(1)
 
 const slicedGraph = computed(() => props.graph.slice(-maxGraphLength.value))
@@ -65,16 +66,16 @@ onBeforeUnmount(() => {
 
 // TODO need to throttle
 const calculateMaxGraphLength = throttle(() => {
-  if (!graphRef.value) {
+  if (!graphElement.value) {
     return
   }
 
   maxGraphLength.value = Math.ceil(
-    graphRef.value.clientWidth / props.graphbarWidth,
+    graphElement.value.clientWidth / props.graphbarWidth,
   )
 }, 300)
 
 function onRef(el: unknown) {
-  graphRef.value = el as HTMLElement
+  graphElement.value = el as HTMLElement
 }
 </script>

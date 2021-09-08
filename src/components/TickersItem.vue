@@ -6,6 +6,7 @@
       shadow
       rounded-lg
       cursor-pointer
+      transition-shadow
       ring-purple-800
     "
     :class="{

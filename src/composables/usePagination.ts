@@ -6,17 +6,19 @@ export default function usePagination<T>(
   list: MaybeRef<T[]>,
   perPage: MaybeRef<number>,
   indexOffset = 0,
-  startPage = 0,
 ) {
-  const page = ref(startPage + indexOffset)
+  const page = ref(indexOffset)
 
-  const startIndex = computed(() => (page.value - 1) * unref(perPage))
-
-  const endIndex = computed(() => page.value * unref(perPage))
+  const startIndex = computed(() => (page.value - indexOffset) * unref(perPage))
+  const endIndex = computed(() => startIndex.value + unref(perPage))
 
   const hasNextPage = computed(() => unref(list).length > endIndex.value)
   const isLastPage = computed(() => !hasNextPage.value)
   const isFirstPage = computed(() => page.value !== indexOffset)
+  const numberOfPages = computed(() =>
+    Math.ceil(unref(list).length / unref(perPage)),
+  )
+  const lastPageNumber = computed(() => numberOfPages.value - 1)
 
   const paginatedItems = computed(() =>
     unref(list).slice(startIndex.value, endIndex.value),
@@ -24,7 +26,7 @@ export default function usePagination<T>(
 
   watch(paginatedItems, (value) => {
     if (value.length == 0 && page.value > indexOffset) {
-      page.value -= 1
+      page.value = lastPageNumber.value
     }
   })
 

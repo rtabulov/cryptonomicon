@@ -59,7 +59,7 @@
 // Параллельно
 // [x] График сломан если везде одинаковые значения
 // [x] При удалении тикера остается выбор
-import { computed, watch } from 'vue'
+import { watch, Ref, ref } from 'vue'
 import { Ticker } from '@/components/ticker'
 import { useStore } from '@/store/store'
 import useTickers from '@/composables/useTickers'
@@ -69,6 +69,7 @@ import {
   unsubscribeFromTicker,
 } from '@/api'
 import useGraph from '@/composables/useGraph'
+import useQuery from '@/composables/useSearchParams'
 
 const store = useStore()
 
@@ -79,7 +80,6 @@ const { graph } = useGraph()
 
 const {
   tickers,
-  selectedTicker,
   filter,
   paginatedTickers,
   page,
@@ -88,37 +88,32 @@ const {
   getTicker,
 } = useTickers()
 
-const pageStateOptions = computed(() => ({
-  filter: filter.value,
-  page: page.value,
-}))
+const selectedTicker: Ref<Ticker | null> = ref(null)
 
-watch(pageStateOptions, (value) => {
-  window.history.pushState(
-    null,
-    window.document.title,
-    `${window.location.pathname}?page=${value.page}&filter=${value.filter}`,
-  )
-})
+useQuery({ filter, page })
 
-watch(selectedTicker, () => {
-  graph.value = []
-})
-
-tickers.value.forEach((t) => {
-  subscribeToTicker(t.name, subscribe)
-})
-
-if (tickers.value.length > 0) {
-  select(tickers.value[0])
-}
-
-// load filter and page
+// TODO refactor!
+// load filter and page from search params
 let { filter: filterParam, page: pageParam } = Object.fromEntries(
   new URLSearchParams(window.location.search).entries(),
 )
 pageParam && (page.value = +pageParam)
 filterParam && (filter.value = filterParam)
+
+// reset graph on selected ticker change
+watch(selectedTicker, () => {
+  graph.value = []
+})
+
+// TODO refactor!
+tickers.value.forEach((t) => {
+  subscribeToTicker(t.name, subscribe)
+})
+
+// TODO refactor!
+if (tickers.value.length > 0) {
+  select(tickers.value[0])
+}
 
 function subscribe({ name, price, error, message }: SubscriberProps) {
   const ticker = getTicker(name)
@@ -181,5 +176,7 @@ function select(t: Ticker) {
   selectedTicker.value = t
 }
 
-const onFilterChange = (val: string) => (filter.value = val)
+function onFilterChange(val: string) {
+  return (filter.value = val)
+}
 </script>

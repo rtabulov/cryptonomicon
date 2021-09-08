@@ -2,8 +2,6 @@
   <div
     class="
       fixed
-      w-100
-      h-100
       opacity-80
       text-center
       bg-purple-800
