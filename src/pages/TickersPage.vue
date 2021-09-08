@@ -1,10 +1,6 @@
 <template>
-  <div class="container">
-    <ticker-add
-      :get-hints="getHints"
-      :check-ticker="tickerExists"
-      @add-ticker="addTicker"
-    />
+  <div class="container px-3">
+    <ticker-add :check-ticker="tickerExists" @add-ticker="addTicker" />
 
     <template v-if="tickers.length">
       <hr class="w-full border-t border-gray-400 my-8" />
@@ -45,20 +41,6 @@
 </template>
 
 <script lang="ts" setup>
-// [x] 6. Наличие в состоянии ЗАВИСИМЫХ ДАННЫХ | Критичность: 5+
-// [ ] 4. Запросы напрямую внутри компонента (???) | Критичность: 5
-// [x] 2. При удалении остается подписка на загрузку тикера | Критичность: 5
-// [x] 5. Обработка ошибок API | Критичность: 5
-// [x] 3. Количество запросов | Критичность: 4
-// [x] 8. При удалении тикера не изменяется localStorage | Критичность: 4
-// [x] 1. Одинаковый код в watch | Критичность: 3
-// [ ] 9. localStorage и анонимные вкладки | Критичность: 3
-// [ ] 7. График ужасно выглядит если будет много цен | Критичность: 2
-// [ ] 10. Магические строки и числа (URL, 5000 миллисекунд задержки, ключ локал стораджа, количество на странице) |  Критичность: 1
-
-// Параллельно
-// [x] График сломан если везде одинаковые значения
-// [x] При удалении тикера остается выбор
 import { watch, Ref, ref } from 'vue'
 import { Ticker } from '@/components/ticker'
 import { useStore } from '@/store/store'
@@ -68,7 +50,6 @@ import {
   subscribeToTicker,
   unsubscribeFromTicker,
 } from '@/api'
-import useGraph from '@/composables/useGraph'
 import useQuery from '@/composables/useSearchParams'
 
 const store = useStore()
@@ -76,7 +57,7 @@ const store = useStore()
 await store.loadCryptoObject()
 const { cryptoObject } = store
 
-const { graph } = useGraph()
+const graph: Ref<number[]> = ref([])
 
 const {
   tickers,
@@ -159,17 +140,6 @@ function removeTicker(tickerToRemove: Ticker) {
   }
 
   unsubscribeFromTicker(tickerToRemove.name, subscribe)
-}
-
-function getHints(ticker: string): string[] {
-  const res = Object.keys(cryptoObject)
-    .filter(
-      (coin) =>
-        coin.includes(ticker) ||
-        cryptoObject[coin].FullName.toUpperCase().includes(ticker),
-    )
-    .slice(0, 4)
-  return res
 }
 
 function select(t: Ticker) {

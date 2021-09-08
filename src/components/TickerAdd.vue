@@ -34,7 +34,7 @@
               text-gray-800
               cursor-pointer
             "
-            @click="hintClick(hint)"
+            @click="onHintClick(hint)"
           >
             {{ hint }}
           </span>
@@ -53,27 +53,25 @@
 </template>
 
 <script lang="ts" setup>
+import { useStore } from '@/store/store'
 import { computed, PropType, ref, watch } from 'vue'
 
 const props = defineProps({
-  getHints: {
-    type: Function as PropType<(prop: string) => string[]>,
-    default: null,
-  },
   checkTicker: {
     type: Function as PropType<(prop: string) => boolean>,
     default: () => true,
   },
 })
-const emit = defineEmits({ addTicker: String })
+const emit = defineEmits<{ (e: 'addTicker', value: string): void }>()
 
+const { cryptoObject } = useStore()
 const ticker = ref('')
+
 watch(ticker, (value) => {
   ticker.value = value.toUpperCase()
 })
 
-//   computed: {
-const hints = computed(() => props.getHints && props.getHints(ticker.value))
+const hints = computed(() => getHints(ticker.value))
 const tickerExists = computed(
   () => props.checkTicker && props.checkTicker(ticker.value),
 )
@@ -85,8 +83,18 @@ function add() {
   emit('addTicker', ticker.value)
   ticker.value = ''
 }
-function hintClick(hint: string) {
+function onHintClick(hint: string) {
   ticker.value = hint
   add()
+}
+function getHints(ticker: string): string[] {
+  const res = Object.keys(cryptoObject)
+    .filter(
+      (coin) =>
+        coin.includes(ticker) ||
+        cryptoObject[coin].FullName.toUpperCase().includes(ticker),
+    )
+    .slice(0, 4)
+  return res
 }
 </script>

@@ -7,7 +7,7 @@
       <svg-icon name="close" class="w-7 h-7" />
     </button>
     <div
-      :ref="onRef"
+      ref="graphElement"
       class="flex items-end border-gray-600 border-b border-l h-64"
     >
       <div
@@ -21,8 +21,8 @@
 </template>
 
 <script lang="ts" setup>
-import { throttle } from 'lodash'
-import { computed, onBeforeUnmount, onMounted, PropType, Ref, ref } from 'vue'
+import useGraph from '@/composables/useGraph'
+import { PropType, Ref, ref, toRef } from 'vue'
 
 // TODO finish graph module
 const props = defineProps({
@@ -40,42 +40,13 @@ const props = defineProps({
   },
 })
 
-const emit = defineEmits({ close: null })
+const emit = defineEmits<{ (e: 'close'): void }>()
 
 const graphElement: Ref<HTMLElement | null> = ref(null)
-const maxGraphLength = ref(1)
 
-const slicedGraph = computed(() => props.graph.slice(-maxGraphLength.value))
-
-const normalizedGraph = computed(() => {
-  const maxValue = Math.max(...slicedGraph.value)
-  const minValue = Math.min(...slicedGraph.value)
-  if (minValue === maxValue) return new Array(slicedGraph.value.length).fill(50)
-  return slicedGraph.value.map(
-    (price) => 5 + ((price - minValue) * 95) / (maxValue - minValue),
-  )
-})
-
-onMounted(() => {
-  calculateMaxGraphLength()
-  window.addEventListener('resize', calculateMaxGraphLength)
-})
-onBeforeUnmount(() => {
-  window.removeEventListener('resize', calculateMaxGraphLength)
-})
-
-// TODO need to throttle
-const calculateMaxGraphLength = throttle(() => {
-  if (!graphElement.value) {
-    return
-  }
-
-  maxGraphLength.value = Math.ceil(
-    graphElement.value.clientWidth / props.graphbarWidth,
-  )
-}, 300)
-
-function onRef(el: unknown) {
-  graphElement.value = el as HTMLElement
-}
+const { normalizedGraph } = useGraph(
+  toRef(props, 'graph'),
+  graphElement,
+  props.graphbarWidth,
+)
 </script>

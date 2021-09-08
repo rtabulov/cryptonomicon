@@ -1,7 +1,7 @@
 <template>
   <div v-if="error">
     <div class="bg-gray-100">
-      <div class="container mx-auto flex flex-col items-center py-4">
+      <div class="container px-3 mx-auto flex flex-col items-center py-4">
         <app-error :message="error.toString()" />
       </div>
     </div>
@@ -10,7 +10,7 @@
   <suspense>
     <template #default>
       <div class="bg-gray-100">
-        <div class="container mx-auto flex flex-col items-center py-4">
+        <div class="container px-3 mx-auto flex flex-col items-center py-4">
           <tickers-page />
         </div>
       </div>
