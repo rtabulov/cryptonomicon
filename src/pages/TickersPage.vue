@@ -35,7 +35,7 @@
       <hr class="w-full border-t border-gray-600 my-4" />
     </template>
 
-    <crypto-graph
+    <app-graph
       v-if="selectedTicker"
       :graph="graph"
       :heading="`${selectedTicker.name} - USD`"
