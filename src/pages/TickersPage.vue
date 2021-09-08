@@ -33,7 +33,7 @@
 
     <app-graph
       v-if="selectedTicker"
-      :graph="graph"
+      :graph="graph[selectedTicker.name]"
       :heading="`${selectedTicker.name} - USD`"
       @close-click="selectedTicker = null"
     />
@@ -52,12 +52,12 @@ import {
 } from '@/api'
 import useQuery from '@/composables/useSearchParams'
 
+const MAX_STORED_GRAPH_ITEMS = 128
+
 const store = useStore()
 
 await store.loadCryptoObject()
 const { cryptoObject } = store
-
-const graph: Ref<number[]> = ref([])
 
 const {
   tickers,
@@ -71,6 +71,22 @@ const {
 
 const selectedTicker: Ref<Ticker | null> = ref(null)
 
+// const graph: Ref<number[]> = ref([])
+const graph: Ref<Record<string, number[]>> = ref({})
+
+watch(
+  graph,
+  (val) => {
+    Object.keys(val).forEach((key) => {
+      const { length } = graph.value[key]
+      if (length > MAX_STORED_GRAPH_ITEMS) {
+        graph.value[key].splice(0, length - MAX_STORED_GRAPH_ITEMS)
+      }
+    })
+  },
+  { deep: true },
+)
+
 useQuery({ filter, page })
 
 // TODO refactor!
@@ -80,11 +96,6 @@ let { filter: filterParam, page: pageParam } = Object.fromEntries(
 )
 pageParam && (page.value = +pageParam)
 filterParam && (filter.value = filterParam)
-
-// reset graph on selected ticker change
-watch(selectedTicker, () => {
-  graph.value = []
-})
 
 // TODO refactor!
 tickers.value.forEach((t) => {
@@ -109,9 +120,12 @@ function subscribe({ name, price, error, message }: SubscriberProps) {
   }
 
   ticker.price = price
-  if (selectedTicker.value?.name === name) {
-    graph.value.push(price)
+  // if (selectedTicker.value?.name === name) {
+  if (!graph.value[ticker.name]) {
+    graph.value[ticker.name] = []
   }
+  graph.value[ticker.name].push(price)
+  // }
 }
 
 function tickerIsValid(name: string) {
@@ -137,6 +151,10 @@ function removeTicker(tickerToRemove: Ticker) {
   // remove selected if it was deleted
   if (tickerToRemove.name === selectedTicker.value?.name) {
     selectedTicker.value = null
+  }
+
+  if (graph.value[tickerToRemove.name]) {
+    delete graph.value[tickerToRemove.name]
   }
 
   unsubscribeFromTicker(tickerToRemove.name, subscribe)
