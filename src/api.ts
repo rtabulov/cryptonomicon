@@ -1,5 +1,4 @@
-const API_KEY =
-  '95bdf7e8c4ef1827e5f4b13d319b2ac9b409aa62feedc30f0f6553924d6ab246'
+const API_KEY = import.meta.env.VITE_CRYPTOCOMPARE_API_KEY
 
 let BTCPrice: number
 

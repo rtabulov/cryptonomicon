@@ -8,12 +8,6 @@ const DEFAULT_COINS: Ticker[] = [
   { name: 'BTC', price: 0 },
   { name: 'ETH', price: 0 },
   { name: 'DOGE', price: 0 },
-  { name: 'XPR', price: 0 },
-  { name: 'ADA', price: 0 },
-  { name: 'USDT', price: 0 },
-  { name: 'LINK', price: 0 },
-  { name: 'UNI', price: 0 },
-  { name: 'DOT', price: 0 },
 ]
 
 // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
