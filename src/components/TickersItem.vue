@@ -47,7 +47,7 @@
   </div>
 </template>
 <script lang="ts" setup>
-import { computed } from 'vue-demi'
+import { computed } from 'vue'
 import { Ticker } from './ticker'
 
 interface Props {
