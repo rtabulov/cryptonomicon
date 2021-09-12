@@ -27,42 +27,40 @@ const SHARED_TYPES = {
   UPDATE: 'update',
 }
 
-const sw = new SharedWorker('/worker.js')
-sw.port.start()
+// const sw = new SharedWorker('/worker.js')
+// sw.port.start()
 
 ws.addEventListener('message', (e) => {
-  const message = JSON.parse(e.data)
-  if (message.TYPE === STREAMER_WELCOME_TYPE) {
-    sw.port.addEventListener('message', ({ data: { type, fsym, tsym } }) => {
-      if (type === SHARED_TYPES.SUBSCRIBE) {
-        sendToWs({
-          action: 'SubAdd',
-          subs: [`5~CCCAGG~${fsym}~${tsym}`],
-        })
-        return
-      }
-
-      if (type === SHARED_TYPES.UNSUBSCRIBE) {
-        sendToWs({
-          action: 'SubRemove',
-          subs: [`5~CCCAGG~${fsym}~${tsym}`],
-        })
-      }
-    })
-    return
-  }
-
-  if (message.TYPE === TOO_MANY_SOCKETS_TYPE) {
-    sw.port.addEventListener('message', ({ data: { data, type } }) => {
-      if (type === SHARED_TYPES.UPDATE) {
-        const { fsym, price, tsym } = data
-        const cbs = tickersHandlers.get(fsym) || []
-        cbs.forEach((cb) =>
-          cb({ name: fsym, price, tsym, error: false, message }),
-        )
-      }
-    })
-  }
+  // const message = JSON.parse(e.data)
+  // if (message.TYPE === STREAMER_WELCOME_TYPE) {
+  //   sw.port.addEventListener('message', ({ data: { type, fsym, tsym } }) => {
+  //     if (type === SHARED_TYPES.SUBSCRIBE) {
+  //       sendToWs({
+  //         action: 'SubAdd',
+  //         subs: [`5~CCCAGG~${fsym}~${tsym}`],
+  //       })
+  //       return
+  //     }
+  //     if (type === SHARED_TYPES.UNSUBSCRIBE) {
+  //       sendToWs({
+  //         action: 'SubRemove',
+  //         subs: [`5~CCCAGG~${fsym}~${tsym}`],
+  //       })
+  //     }
+  //   })
+  //   return
+  // }
+  // if (message.TYPE === TOO_MANY_SOCKETS_TYPE) {
+  //   sw.port.addEventListener('message', ({ data: { data, type } }) => {
+  //     if (type === SHARED_TYPES.UPDATE) {
+  //       const { fsym, price, tsym } = data
+  //       const cbs = tickersHandlers.get(fsym) || []
+  //       cbs.forEach((cb) =>
+  //         cb({ name: fsym, price, tsym, error: false, message }),
+  //       )
+  //     }
+  //   })
+  // }
 })
 
 // cross currency
@@ -103,7 +101,7 @@ ws.addEventListener('message', (e) => {
   if (type === AGGREGATE_INDEX_TYPE) {
     const { FROMSYMBOL: fsym, PRICE: price, TOSYMBOL: tsym } = message
     if (price) {
-      sw.port.postMessage({ type: 'update', data: { fsym, price, tsym } })
+      // sw.port.postMessage({ type: 'update', data: { fsym, price, tsym } })
 
       const cbs = tickersHandlers.get(fsym) || []
       cbs.forEach((cb) =>
@@ -128,7 +126,7 @@ export function subscribeToTicker(
     subs: [`5~CCCAGG~${ticker}~${tsym}`],
   })
 
-  sw.port.postMessage({ type: 'subscribe', fsym: ticker, tsym })
+  // sw.port.postMessage({ type: 'subscribe', fsym: ticker, tsym })
 }
 
 export function unsubscribeFromTicker(ticker: string, cb?: Subscriber): void {
@@ -144,8 +142,8 @@ export function unsubscribeFromTicker(ticker: string, cb?: Subscriber): void {
 
     tickersHandlers.delete(ticker)
 
-    sw.port.postMessage({ type: 'unsubscribe', fsym: ticker, tsym: 'USD' })
-    sw.port.postMessage({ type: 'unsubscribe', fsym: ticker, tsym: 'BTC' })
+    // sw.port.postMessage({ type: 'unsubscribe', fsym: ticker, tsym: 'USD' })
+    // sw.port.postMessage({ type: 'unsubscribe', fsym: ticker, tsym: 'BTC' })
 
     return
   }
