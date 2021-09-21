@@ -17,51 +17,51 @@ const ws = new WebSocket(
 )
 const AGGREGATE_INDEX_TYPE = '5'
 const INVALID_SUB_TYPE = '500'
-const STREAMER_WELCOME_TYPE = '20'
-const TOO_MANY_SOCKETS_TYPE = '429'
+// const STREAMER_WELCOME_TYPE = '20'
+// const TOO_MANY_SOCKETS_TYPE = '429'
 const INVALID_SUB = 'INVALID_SUB'
 
-const SHARED_TYPES = {
-  SUBSCRIBE: 'subscribe',
-  UNSUBSCRIBE: 'unsubscribe',
-  UPDATE: 'update',
-}
+// const SHARED_TYPES = {
+//   SUBSCRIBE: 'subscribe',
+//   UNSUBSCRIBE: 'unsubscribe',
+//   UPDATE: 'update',
+// }
 
 // const sw = new SharedWorker('/worker.js')
 // sw.port.start()
 
-ws.addEventListener('message', (e) => {
-  // const message = JSON.parse(e.data)
-  // if (message.TYPE === STREAMER_WELCOME_TYPE) {
-  //   sw.port.addEventListener('message', ({ data: { type, fsym, tsym } }) => {
-  //     if (type === SHARED_TYPES.SUBSCRIBE) {
-  //       sendToWs({
-  //         action: 'SubAdd',
-  //         subs: [`5~CCCAGG~${fsym}~${tsym}`],
-  //       })
-  //       return
-  //     }
-  //     if (type === SHARED_TYPES.UNSUBSCRIBE) {
-  //       sendToWs({
-  //         action: 'SubRemove',
-  //         subs: [`5~CCCAGG~${fsym}~${tsym}`],
-  //       })
-  //     }
-  //   })
-  //   return
-  // }
-  // if (message.TYPE === TOO_MANY_SOCKETS_TYPE) {
-  //   sw.port.addEventListener('message', ({ data: { data, type } }) => {
-  //     if (type === SHARED_TYPES.UPDATE) {
-  //       const { fsym, price, tsym } = data
-  //       const cbs = tickersHandlers.get(fsym) || []
-  //       cbs.forEach((cb) =>
-  //         cb({ name: fsym, price, tsym, error: false, message }),
-  //       )
-  //     }
-  //   })
-  // }
-})
+// ws.addEventListener('message', (e) => {
+// const message = JSON.parse(e.data)
+// if (message.TYPE === STREAMER_WELCOME_TYPE) {
+//   sw.port.addEventListener('message', ({ data: { type, fsym, tsym } }) => {
+//     if (type === SHARED_TYPES.SUBSCRIBE) {
+//       sendToWs({
+//         action: 'SubAdd',
+//         subs: [`5~CCCAGG~${fsym}~${tsym}`],
+//       })
+//       return
+//     }
+//     if (type === SHARED_TYPES.UNSUBSCRIBE) {
+//       sendToWs({
+//         action: 'SubRemove',
+//         subs: [`5~CCCAGG~${fsym}~${tsym}`],
+//       })
+//     }
+//   })
+//   return
+// }
+// if (message.TYPE === TOO_MANY_SOCKETS_TYPE) {
+//   sw.port.addEventListener('message', ({ data: { data, type } }) => {
+//     if (type === SHARED_TYPES.UPDATE) {
+//       const { fsym, price, tsym } = data
+//       const cbs = tickersHandlers.get(fsym) || []
+//       cbs.forEach((cb) =>
+//         cb({ name: fsym, price, tsym, error: false, message }),
+//       )
+//     }
+//   })
+// }
+// })
 
 // cross currency
 ws.addEventListener('message', (e) => {

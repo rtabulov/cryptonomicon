@@ -47,6 +47,7 @@
   </div>
 </template>
 <script lang="ts" setup>
+import { formatPrice } from '@/utils'
 import { computed } from 'vue'
 import { Ticker } from './ticker'
 
@@ -60,14 +61,5 @@ const props = withDefaults(defineProps<Props>(), {
   error: false,
 })
 defineEmits<{ (e: 'delete', ticker: Ticker): void }>()
-const formattedPrice = computed(() => {
-  if (props.ticker.price === 0) {
-    return '-'
-  }
-
-  if (props.ticker.price < 1) {
-    return props.ticker.price.toPrecision(3)
-  }
-  return props.ticker.price.toFixed(2)
-})
+const formattedPrice = computed(() => formatPrice(props.ticker.price))
 </script>

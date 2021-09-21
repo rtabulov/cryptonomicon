@@ -38,14 +38,14 @@ export default function useGraph(
   const max = computed(() => Math.max(...slicedItems.value))
   const min = computed(() => Math.min(...slicedItems.value))
 
-  const normalizedGraph = computed(() => {
-    if (min.value === max.value)
-      return new Array(slicedItems.value.length).fill(50)
-
-    return slicedItems.value.map((price) =>
-      normalizeFunc(price, min.value, max.value),
-    )
-  })
+  const normalizedGraph = computed<{ original: number; normalized: number }[]>(
+    () => {
+      return slicedItems.value.map((price) => ({
+        normalized: normalizeFunc(price, min.value, max.value),
+        original: price,
+      }))
+    },
+  )
 
   const recalculateMaxGraphLength = throttle(() => {
     if (!elementRef.value) {
@@ -71,5 +71,8 @@ export default function useGraph(
 }
 
 function normalizeFunc(num: number, min: number, max: number) {
+  if (min === max) {
+    return 50
+  }
   return 5 + ((num - min) * 95) / (max - min)
 }
